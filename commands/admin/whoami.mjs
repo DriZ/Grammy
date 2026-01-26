@@ -1,0 +1,24 @@
+import Command from "../../structures/Command.mjs";
+
+export default class extends Command {
+    constructor(client) {
+        super(client, {
+            description: "Показать информацию о себе",
+            permission: 1
+        });
+    }
+
+    async execute(ctx) {
+        const user = ctx.from;
+        const info = `
+👤 **Твоя информация:**
+├ ID: \`${user.id}\`
+├ Имя: ${user.first_name}
+${user.last_name ? `├ Фамилия: ${user.last_name}` : ""}
+├ Username: ${user.username ? `@${user.username}` : "Не установлено"}
+└ Статус: ✅ Администратор
+        `.trim();
+        
+        await ctx.reply(info, { parse_mode: "Markdown" });
+    }
+};
