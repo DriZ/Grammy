@@ -10,10 +10,10 @@
 
 import { PermissionLevel } from "../types/index.js";
 import type {
-  CommandInfo,
-  CommandConfig,
-  CommandOptions,
-  BaseContext,
+	CommandInfo,
+	CommandConfig,
+	CommandOptions,
+	BaseContext,
 } from "../types/index.js";
 import BotClient from "../core/Client.js";
 
@@ -25,87 +25,102 @@ import BotClient from "../core/Client.js";
  * Можно расширить: class MyCommand extends Command ✅
  */
 export default abstract class Command {
-  // Типизированные свойства
-  protected client: BotClient;
-  public info: CommandInfo;
-  public config: CommandConfig;
+	// Типизированные свойства
+	protected client: BotClient;
+	public info: CommandInfo;
+	public config: CommandConfig;
 
-  /**
-   * Конструктор команды
-   * @param client - экземпляр BotClient
-   * @param options - опции конфигурации команды
-   */
-  constructor(client: BotClient, options: CommandOptions) {
-    this.client = client;
+	/**
+	 * Конструктор команды
+	 * @param client - экземпляр BotClient
+	 * @param options - опции конфигурации команды
+	 */
+	constructor(client: BotClient, options: CommandOptions) {
+		this.client = client;
 
-    // Деструктуризация с значениями по умолчанию
-    const {
-      name = null,
-      description = "No description provided",
-      aliases = [],
-      category = "General",
-      usage = `/${name || "command"}`,
-      permission = PermissionLevel.User,
-      location = null,
-      enabled = true,
-    } = options;
+		// Деструктуризация с значениями по умолчанию
+		let {
+			name = null,
+			description = "No description provided",
+			aliases = [],
+			category = "General",
+			usage = null,
+			permission = PermissionLevel.User,
+			location = null,
+			enabled = true,
+			showInMenu = true,
+		} = options;
 
-    // Инициализируем объекты с правильными типами
-    this.config = { permission, location, enabled };
-    this.info = {
-      name: name || "",
-      description,
-      aliases,
-      category,
-      usage,
-    };
-  }
+		// Если имя не указано, пытаемся определить его по имени класса
+		if (!name) {
+			const className = this.constructor.name;
+			if (className && className !== "Command") {
+				// Удаляем суффикс 'Command' и приводим к нижнему регистру (PingCommand -> ping)
+				name = className.replace(/Command$/i, "").toLowerCase();
+			}
+		}
 
-  /**
-   * Абстрактный метод execute
-   * Каждая команда ДОЛЖНА реализовать этот метод
-   *
-   * @param ctx - контекст Telegraf с информацией о сообщении
-   */
-  abstract execute(ctx: BaseContext): Promise<void> | void;
+		// Если usage не указан, генерируем его на основе имени
+		if (!usage) {
+			usage = `/${name || "command"}`;
+		}
 
-  /**
-   * Перезагрузить команду
-   * Выгружает и загружает команду заново
-   *
-   * @param ctx - опциональный контекст для отправки сообщений
-   */
-  async reload(ctx?: BaseContext): Promise<void> {
-    // Отправляем сообщение о начале перезагрузки
-    let msg = ctx ? await ctx.reply("♻️ Перезагрузка команды...") : null;
+		// Инициализируем объекты с правильными типами
+		this.config = { permission, location, enabled, showInMenu };
+		this.info = {
+			name: name || "",
+			description,
+			aliases,
+			category,
+			usage,
+		};
+	}
 
-    // Задержка для визуального эффекта
-    await this.client.utils.sleep(500);
+	/**
+	 * Абстрактный метод execute
+	 * Каждая команда ДОЛЖНА реализовать этот метод
+	 *
+	 * @param ctx - контекст Telegraf с информацией о сообщении
+	 */
+	abstract execute(ctx: BaseContext, args?: string[]): Promise<void> | void;
 
-    const commandPath = this.config.location;
-    if (!commandPath) {
-      if (msg && ctx) {
-        await ctx.editMessageText("❌ Не удалось перезагрузить команду: путь к файлу не найден.");
-      }
-      throw new Error(
-        `Cannot reload command ${this.info.name}: file path not found.`,
-      );
-    }
+	/**
+	 * Перезагрузить команду
+	 * Выгружает и загружает команду заново
+	 *
+	 * @param ctx - опциональный контекст для отправки сообщений
+	 */
+	async reload(ctx?: BaseContext): Promise<void> {
+		// Отправляем сообщение о начале перезагрузки
+		let msg = ctx ? await ctx.reply("♻️ Перезагрузка команды...") : null;
 
-    // Выгружаем команду
-    await this.client.utils.sleep(500);
-    if (msg && ctx) {
-      await ctx.editMessageText("♻️ Выгружаю команду...");
-    }
-    this.client.commandHandler.unloadCommand(this.info.name);
+		// Задержка для визуального эффекта
+		await this.client.utils.sleep(500);
 
-    // Загружаем команду заново
-    await this.client.utils.sleep(500);
-    if (msg && ctx) {
-      await ctx.editMessageText("♻️ Выгружено. Загружаю команду...");
-    }
-    await this.client.commandHandler.loadCommand(commandPath);
+		const commandPath = this.config.location;
+		if (!commandPath) {
+			if (msg && ctx) {
+				await ctx.editMessageText("❌ Не удалось перезагрузить команду: путь к файлу не найден.");
+			}
+			throw new Error(
+				`Cannot reload command ${this.info.name}: file path not found.`,
+			);
+		}
 
-    console.log(`✅ Command reloaded: ${this.info.name}`);
-  }
+		// Выгружаем команду
+		await this.client.utils.sleep(500);
+		if (msg && ctx) {
+			await ctx.editMessageText("♻️ Выгружаю команду...");
+		}
+		this.client.commandManager.unloadCommand(this.info.name);
+
+		// Загружаем команду заново
+		await this.client.utils.sleep(500);
+		if (msg && ctx) {
+			await ctx.editMessageText("♻️ Выгружено. Загружаю команду...");
+		}
+		await this.client.commandManager.loadCommand(commandPath);
+
+		console.log(`✅ Command reloaded: ${this.info.name}`);
+	}
 }

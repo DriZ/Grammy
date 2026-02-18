@@ -10,6 +10,8 @@ import { fileURLToPath } from "url";
 import type { CallbackContext, Menu, MenuButton } from "../types/index.js";
 import BotClient from "./Client.js";
 import { InlineKeyboard } from "grammy";
+import config from "../config.js";
+import { PermissionLevel } from "../types/index.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,7 +23,7 @@ const __dirname = path.dirname(__filename);
  */
 export default class MenuHandler {
 	private client: BotClient;
-	private menus: Map<string, Menu>;
+	public menus: Map<string, Menu>;
 
 	/**
 	 * Конструктор
@@ -31,6 +33,70 @@ export default class MenuHandler {
 	constructor(client: BotClient) {
 		this.client = client;
 		this.menus = new Map();
+
+		// Слушаем кнопку "🤖 Команды" из Reply-меню
+		this.client.hears("🤖 Команды", async (ctx) => {
+			await this.showMenu(ctx as any, "commands-list");
+		});
+
+		// Регистрируем глобальный обработчик для динамических кнопок команд
+		this.client.callbackQuery(/^cmd:(.+)$/, async (ctx) => {
+			const match = ctx.match as RegExpMatchArray;
+			console.log(`Словил кнопку команды: ${match[1]}`)
+			const commandName = match[1];
+			const command = this.client.commandManager.commands.get(commandName);
+
+			if (command) {
+				await ctx.answerCallbackQuery();
+
+				// Переопределяем reply для редактирования сообщения и добавления кнопки Назад
+				const originalReply = ctx.reply.bind(ctx);
+				(ctx as any).reply = async (text: string, extra: any = {}) => {
+					const backBtn = { text: "🔙 Назад", callback_data: "commands-list" };
+
+					if (!extra.reply_markup) {
+						extra.reply_markup = new InlineKeyboard().row(backBtn);
+					} else if (extra.reply_markup instanceof InlineKeyboard) {
+						extra.reply_markup.row().text(backBtn.text, backBtn.callback_data);
+					} else if (extra.reply_markup.inline_keyboard) {
+						extra.reply_markup.inline_keyboard.push([backBtn]);
+					}
+
+					try {
+						return await ctx.editMessageText(text, extra);
+					} catch (e) {
+						// Если редактирование невозможно (например, контент не изменился), отправляем новое
+						return await originalReply(text, extra);
+					}
+				};
+
+				// Выполняем команду. Передаем пустые аргументы.
+				try {
+					await command.execute(ctx as any, []);
+				} catch (e) {
+					console.error(`Ошибка выполнения команды ${commandName} из меню:`, e);
+					await originalReply("❌ Ошибка при выполнении команды.");
+				}
+			} else {
+				await ctx.answerCallbackQuery("⚠️ Команда не найдена или отключена.");
+			}
+		});
+
+		// Регистрируем глобальный обработчик для навигации по меню
+		this.client.on("callback_query:data", async (ctx, next) => {
+			const menuId = ctx.callbackQuery.data;
+
+			if (menuId === "commands-list" || menuId === "delete-msg") {
+				await ctx.answerCallbackQuery();
+				return this.showMenu(ctx as CallbackContext, menuId);
+			}
+
+			// if (this.menus.has(menuId)) {
+			// 	await ctx.answerCallbackQuery();
+			// 	return this.showMenu(ctx as CallbackContext, menuId);
+			// }
+			return next();
+		});
 	}
 
 	/**
@@ -138,7 +204,37 @@ export default class MenuHandler {
 	 * @param id - id меню
 	 */
 	async showMenu(ctx: CallbackContext, nextMenu: string | null = null): Promise<void> {
-		const menu = nextMenu ? this.getMenu(nextMenu) : this.getMenu(ctx.callbackQuery.data);
+		const menuId = nextMenu || ctx.callbackQuery?.data || "";
+
+		if (menuId === "delete-msg") {
+			await ctx.msg?.delete().catch(() => { });
+			return;
+		}
+
+		if (menuId === "commands-list") {
+			const buttons = this.getAvailableCommandButtons(ctx);
+			const keyboard = new InlineKeyboard();
+
+			// Группируем по 2 кнопки в ряд
+			for (let i = 0; i < buttons.length; i += 2) {
+				const b1 = buttons[i];
+				const b2 = buttons[i + 1];
+				keyboard.text(b1.text, b1.callback);
+				if (b2) keyboard.text(b2.text, b2.callback);
+				keyboard.row();
+			}
+			keyboard.text("❌ Закрыть", "delete-msg");
+
+			const text = "🤖 **Выберите команду:**";
+			if (ctx.callbackQuery) {
+				await ctx.editMessageText(text, { reply_markup: keyboard, parse_mode: "Markdown" });
+			} else {
+				await ctx.reply(text, { reply_markup: keyboard, parse_mode: "Markdown" });
+			}
+			return;
+		}
+
+		const menu = this.menus.get(menuId);
 		if (!menu) {
 			await ctx.reply("❌ Меню не найдено.");
 			return
@@ -149,32 +245,51 @@ export default class MenuHandler {
 
 		// Создаём клавиатуру из кнопок меню
 		const keyboard = new InlineKeyboard()
-		menu.buttons.map((b) => keyboard.text(b.text, b.callback).row());
+		menu.buttons.map((b) => {
+			keyboard.text(b.text, b.callback || b.nextMenu || "noop").row()
+		});
 		ctx.callbackQuery
 			? await ctx.callbackQuery.message?.editText(menu.title, { reply_markup: keyboard })
 			: await ctx.reply(menu.title, { reply_markup: keyboard });
 		return
 	}
 
-	/**
-	 * Получить меню по id
-	 * @param id - id меню
-	 * @returns меню или null
-	 */
-	getMenu(id: string): Menu | null {
-		return this.menus.get(id) || null;
-	}
-
-	/**
-	 * Получить все меню
-	 * @returns Map со всеми меню
-	 */
-	getAllMenus(): Map<string, Menu> {
-		return this.menus;
-	}
-
 	registerMenu(id: string, menu: Menu) {
 		console.log(`Регистрирую меню ${menu.title} - ${menu.id}`)
 		return this.menus.set(id, menu);
+	}
+
+	/**
+	 * Получить список кнопок для доступных команд
+	 */
+	private getAvailableCommandButtons(ctx: CallbackContext): MenuButton[] {
+		const userId = ctx.from?.id;
+		const isOwner = config.owner && userId === config.owner;
+		const isAdmin = config.admins && config.admins.includes(userId || 0);
+
+		let userPerm = PermissionLevel.User;
+		if (isAdmin) userPerm = PermissionLevel.Admin;
+		if (isOwner) userPerm = PermissionLevel.Owner;
+
+		const buttons: MenuButton[] = [];
+
+		this.client.commandManager.commands.forEach((cmd) => {
+			// Фильтруем по правам
+			if (cmd.config.permission > userPerm) return;
+			// Фильтруем отключенные
+			if (!cmd.config.enabled) return;
+			// Фильтруем скрытые из меню
+			if (cmd.config.showInMenu === false) return;
+			// Можно добавить фильтр по категории, если нужно
+			// if (cmd.info.category !== 'Utilities') return;
+
+			buttons.push({
+				text: `🔹 ${cmd.info.description || cmd.info.name}`, // Используем описание или имя
+				callback: `cmd:${cmd.info.name}`,
+				// nextMenu и action здесь не нужны, так как мы используем callback
+			} as MenuButton);
+		});
+
+		return buttons;
 	}
 }

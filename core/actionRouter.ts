@@ -29,12 +29,12 @@ export class ActionRouter<C extends CallbackContext> {
 		}
 
 		// fallback: меню навигация
-		const menu = this.client.menuHandler.getMenu(data);
+		const menu = this.client.menuHandler.menus.get(data);
 		if (menu) {
 			if (menu.action) return menu.action(ctx);
 			return this.client.menuHandler.showMenu(ctx, menu.id);
 		}
 
-		await ctx.answerCallbackQuery({ text: "❌ Неизвестное действие" });
+		await ctx.answerCallbackQuery({ text: "❌ Неизвестное действие", show_alert: true });
 	}
 }

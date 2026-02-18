@@ -1,23 +1,10 @@
-/**
- * types/index.ts - Централизованное хранилище всех типов и интерфейсов
- *
- * Это файл содержит все TypeScript интерфейсы и типы проекта.
- * Экспортируем их отсюда для удобства и единой точки доступа.
- *
- * TypeScript практика: Отделение типов от логики улучшает:
- * 1. Читаемость кода
- * 2. Возможность переиспользования типов
- * 3. Структурированность проекта
- */
-
 import { CallbackQueryContext, Context, SessionFlavor } from "grammy";
 import { HydrateFlavor } from "@grammyjs/hydrate";
-import BotClient from "../core/Client";
 import MenuHandler from "../core/menuHandler";
 import SceneHandler from "../core/sceneHandler";
-import CommandHandler from "../core/commandHandler";
-import { SceneManager } from "../managers";
+import { SceneManager } from "../core/SceneManager.js";
 import * as utils from "../structures/util.js"
+import CommandManager from "../core/CommandManager.js";
 
 // ============================================================
 // 🤖 Типы конфигурации и уровни доступа
@@ -35,16 +22,6 @@ export interface BotConfig {
 		OWNER: 2;
 	};
 }
-
-// ============================================================
-// 📋 Типы команд
-// ============================================================
-
-
-
-// ============================================================
-// 📂 Типы для структуры команд и меню
-// ============================================================
 
 /**
  * Информация о команде
@@ -64,6 +41,15 @@ export interface CommandConfig {
 	permission: number;
 	location: string | null;
 	enabled: boolean;
+	showInMenu: boolean;
+}
+
+/**
+ * Структура команды
+ */
+export interface Command {
+	info: CommandInfo;
+	config: CommandConfig;
 }
 
 /** * Уровни прав доступа: 
@@ -81,16 +67,20 @@ export enum PermissionLevel {
  * Опции для создания команды
  */
 export interface CommandOptions {
-	name?: string;
-	description?: string;
+	name: string;
+	description: string;
 	aliases?: string[];
 	category?: string;
 	usage?: string;
-	permission?: PermissionLevel;
+	permission: PermissionLevel;
 	location?: string | null;
 	enabled?: boolean;
+	showInMenu?: boolean;
 }
 
+/**
+ * Данные, сохраняемые в сессию
+ */
 export interface SessionData {
 	currentScene?: string | null;
 	step?: number;
@@ -98,11 +88,14 @@ export interface SessionData {
 	params?: Record<string, any>;
 }
 
+/**
+ * Сервисы, которые будут переданы в контекст для доступа к ним
+ */
 export interface Services {
 	menuHandler: MenuHandler;
 	sceneHandler: SceneHandler;
 	sceneManager: SceneManager;
-	commandHandler: CommandHandler;
+	commandManager: CommandManager;
 }
 
 export interface ServicesFlavor {

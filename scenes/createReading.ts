@@ -1,5 +1,5 @@
 import { CallbackContext, WizardScene } from "../types/index.js";
-import { Account, UtilitiesReading, ZoneReading, MeterType } from "../models/index.js";
+import { Account, UtilitiesReading, ZoneReading, MeterType, IAccount } from "../models/index.js";
 import { InlineKeyboard } from "grammy";
 
 
@@ -14,7 +14,6 @@ const createReadingScene: WizardScene<CallbackContext> = {
 				await ctx.wizard.params.message?.editText("❌ Счёт не найден.");
 				return ctx.scene.leave();
 			}
-			ctx.wizard.params.account = account;
 			const currentYear = new Date().getFullYear();
 			ctx.wizard.state.selectedYear = currentYear;
 			await ctx.wizard.params.message?.editText(
@@ -42,7 +41,17 @@ const createReadingScene: WizardScene<CallbackContext> = {
 			if (monthData) {
 				ctx.wizard.state.year = parseInt(monthData[1], 10);
 				ctx.wizard.state.month = parseInt(monthData[2], 10);
-				const account = ctx.wizard.params.account;
+
+				// Получаем свежие данные аккаунта по ID
+				const account: IAccount | null = await Account.findById(ctx.wizard.params.accountId);
+
+				if (!account) {
+					await ctx.wizard.params.message?.editText("❌ Счёт не найден.", {
+						reply_markup: new InlineKeyboard().text("⬅️ Назад", `utilities-menu`)
+					});
+					return ctx.scene.leave();
+				}
+
 				let zones: string[] = ["standard"];
 				if (account.resource === "electricity" && account.meterType) {
 					if (account.meterType === MeterType.DAY_NIGHT) zones = ["day", "night"];

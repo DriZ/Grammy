@@ -41,7 +41,7 @@ const utilitiesMenu: Menu = {
 
         // Регистрируем меню для этого адреса
         const addrMenu = ctx.utils.makeAddressMenu(addr._id.toString());
-        ctx.services.menuHandler.registerMenu(addrMenu.id, addrMenu);
+        if (!ctx.services.menuHandler.menus.has(addrMenu.id)) ctx.services.menuHandler.registerMenu(addrMenu.id, addrMenu);
 
         keyboard.text(`🏠 ${addr.name}`, callback).row();
       });

@@ -180,7 +180,7 @@ export function makeReadingsMenu(accountId: string): Menu {
 
 					// формируем строку из зон
 					const zonesStr = r.zones.map((z) => `${z.name}: ${z.value}`).join(", ");
-					keyboard.text(`${r.month}.${r.year} → ${zonesStr}`, `reading-${r._id}`).row();
+					keyboard.text(`${r.month.toString().padStart(2, "0")}.${r.year} → ${zonesStr}`, `reading-${r._id}`).row();
 				});
 			}
 

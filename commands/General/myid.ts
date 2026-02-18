@@ -4,7 +4,7 @@
 
 import Command from "../../structures/Command.js";
 import type BotClient from "../../core/Client.js";
-import { BaseContext } from "../../types/index.js";
+import { BaseContext, PermissionLevel } from "../../types/index.js";
 
 /**
  * Команда myid - показывает ID пользователя
@@ -19,6 +19,11 @@ export default class MyIdCommand extends Command {
       name: "myid",
       description: "Получить твой ID",
       aliases: ["id", "getid"],
+	  category: "General",
+      usage: "/myid",
+      enabled: true,
+      location: null,
+      permission: PermissionLevel.User,
     });
   }
 

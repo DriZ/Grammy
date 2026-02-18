@@ -15,7 +15,7 @@ const mainMenu: Menu = {
 			text: "📡 Пинг",
 			callback: "ping",
 			action: async (ctx) => {
-				const command = ctx.services.commandHandler.getCommand("ping");
+				const command = ctx.services.commandManager.commands.get("ping");
 				if (!command) {
 					return ctx.callbackQuery.message?.editText("Команда ping не найдена.");
 				}
@@ -26,7 +26,7 @@ const mainMenu: Menu = {
 			text: "👤 Обо мне",
 			callback: "whoami",
 			action: async (ctx) => {
-				const command = ctx.services.commandHandler.getCommand("whoami");
+				const command = ctx.services.commandManager.commands.get("whoami");
 				if (!command) {
 					return ctx.callbackQuery.message?.editText("Команда ping не найдена.");
 				}
@@ -37,7 +37,7 @@ const mainMenu: Menu = {
 			text: "🆔 Мой айди",
 			callback: "myid",
 			action: async (ctx) => {
-				const command = ctx.services.commandHandler.getCommand("myid");
+				const command = ctx.services.commandManager.commands.get("myid");
 				if (!command) {
 					return ctx.callbackQuery.message?.editText("Команда ping не найдена.");
 				}

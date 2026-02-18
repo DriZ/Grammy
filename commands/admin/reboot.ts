@@ -6,7 +6,7 @@
 
 import Command from "../../structures/Command.js";
 import type BotClient from "../../core/Client.js";
-import { BaseContext } from "../../types/index.js";
+import { BaseContext, PermissionLevel } from "../../types/index.js";
 
 /**
  * Команда reboot - перезагружает бот процесс
@@ -14,8 +14,13 @@ import { BaseContext } from "../../types/index.js";
 export default class RebootCommand extends Command {
   constructor(client: BotClient) {
     super(client, {
+		name: "reboot",
+      category: "Owner",
+      usage: "/reboot",
+      enabled: true,
+      location: null,
       description: "Перезагрузить бота",
-      permission: 1, // Только админы
+      permission: PermissionLevel.Owner,
       aliases: ["r", "restart"],
     });
   }
