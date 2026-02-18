@@ -46,4 +46,4 @@ const mainMenu: Menu = {
 		},
 	],
 };
-export default mainMenu
+export default mainMenu;

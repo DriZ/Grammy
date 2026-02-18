@@ -12,7 +12,6 @@ import Event from "../structures/Event.js";
 import BotClient from "./Client.js";
 import { FilterQuery } from "grammy";
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -46,10 +45,8 @@ export default class EventHandler {
 			return this._events;
 		}
 
-		const files = fs
-			.readdirSync(eventsDir)
-			.filter((file) => file.endsWith(".js"));
-			
+		const files = fs.readdirSync(eventsDir).filter((file) => file.endsWith(".js"));
+
 		for (const file of files) {
 			const filePath = path.join(eventsDir, file);
 			const eventName = file.replace(".js", "");
@@ -59,16 +56,12 @@ export default class EventHandler {
 				const event = new module.default(this.client, eventName) as Event;
 
 				if (!event.name) {
-					console.warn(
-						`⚠️  Событие в файле ${file} не имеет имени. Пропускаю...`,
-					);
+					console.warn(`⚠️  Событие в файле ${file} не имеет имени. Пропускаю...`);
 					continue;
 				}
 
 				if (typeof event.execute !== "function") {
-					console.warn(
-						`⚠️  Событие ${file} не имеет метода execute(). Пропускаю...`,
-					);
+					console.warn(`⚠️  Событие ${file} не имеет метода execute(). Пропускаю...`);
 					console.log(`   Event object:`, event);
 					continue;
 				}

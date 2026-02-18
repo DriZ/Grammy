@@ -7,16 +7,14 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import type { CallbackContext, Menu, MenuButton } from "../types/index.js";
+import type { CallbackContext, Menu, MenuButton, SessionContext } from "../types/index.js";
 import BotClient from "./Client.js";
-import { InlineKeyboard } from "grammy";
+import { HearsContext, InlineKeyboard } from "grammy";
 import config from "../config.js";
 import { PermissionLevel } from "../types/index.js";
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 
 /**
  * Обработчик меню
@@ -36,13 +34,13 @@ export default class MenuHandler {
 
 		// Слушаем кнопку "🤖 Команды" из Reply-меню
 		this.client.hears("🤖 Команды", async (ctx) => {
-			await this.showMenu(ctx as any, "commands-list");
+			await this.showMenu(ctx as HearsContext<SessionContext> & CallbackContext, "commands-list");
 		});
 
 		// Регистрируем глобальный обработчик для динамических кнопок команд
 		this.client.callbackQuery(/^cmd:(.+)$/, async (ctx) => {
 			const match = ctx.match as RegExpMatchArray;
-			console.log(`Словил кнопку команды: ${match[1]}`)
+			console.log(`Словил кнопку команды: ${match[1]}`);
 			const commandName = match[1];
 			const command = this.client.commandManager.commands.get(commandName);
 
@@ -136,16 +134,16 @@ export default class MenuHandler {
 						try {
 							await ctx.answerCallbackQuery();
 							console.log(`🔘 Нажата кнопка: "${btn.text}"`);
-							// 1. Если callback совпадает с именем сцены — запускаем сцену 
+							// 1. Если callback совпадает с именем сцены — запускаем сцену
 							const scene = this.client.sceneManager.getScene(btn.callback);
 							if (scene) {
 								return this.client.sceneManager.enter(ctx, btn.callback);
 							}
-							// 2. Если указан nextMenu — показываем меню 
+							// 2. Если указан nextMenu — показываем меню
 							if (btn.nextMenu) {
 								return this.showMenu(ctx, btn.nextMenu);
 							}
-							// 3. Если есть кастомное действие — выполняем его 
+							// 3. Если есть кастомное действие — выполняем его
 							if (btn.action) {
 								return btn.action(ctx);
 							}
@@ -158,14 +156,17 @@ export default class MenuHandler {
 					this.client.hears(btn.text, async (ctx) => {
 						try {
 							console.log(`🔘 Reply кнопка нажата: "${btn.text}"`);
-							if (ctx.message) await ctx.msg.delete()
+							if (ctx.message) await ctx.msg.delete();
 							if (btn.nextMenu) {
 								return this.showMenu(ctx as any, btn.nextMenu);
 							}
 							if (btn.action) btn.action(ctx as any);
-							return
+							return;
 						} catch (error) {
-							console.error(`❌ Ошибка при обработке reply кнопки "${btn.text}":`, error);
+							console.error(
+								`❌ Ошибка при обработке reply кнопки "${btn.text}":`,
+								error,
+							);
 						}
 					});
 				}
@@ -207,7 +208,7 @@ export default class MenuHandler {
 		const menuId = nextMenu || ctx.callbackQuery?.data || "";
 
 		if (menuId === "delete-msg") {
-			await ctx.msg?.delete().catch(() => { });
+			await ctx.msg?.delete().catch(() => {});
 			return;
 		}
 
@@ -237,25 +238,27 @@ export default class MenuHandler {
 		const menu = this.menus.get(menuId);
 		if (!menu) {
 			await ctx.reply("❌ Меню не найдено.");
-			return
+			return;
 		}
-		console.log(`Загружается меню ${menu.title} - ${menu.id}`)
+		console.log(`Загружается меню ${menu.title} - ${menu.id}`);
 
-		if (menu.action) { return menu.action(ctx); }
+		if (menu.action) {
+			return menu.action(ctx);
+		}
 
 		// Создаём клавиатуру из кнопок меню
-		const keyboard = new InlineKeyboard()
+		const keyboard = new InlineKeyboard();
 		menu.buttons.map((b) => {
-			keyboard.text(b.text, b.callback || b.nextMenu || "noop").row()
+			keyboard.text(b.text, b.callback || b.nextMenu || "noop").row();
 		});
 		ctx.callbackQuery
 			? await ctx.callbackQuery.message?.editText(menu.title, { reply_markup: keyboard })
 			: await ctx.reply(menu.title, { reply_markup: keyboard });
-		return
+		return;
 	}
 
 	registerMenu(id: string, menu: Menu) {
-		console.log(`Регистрирую меню ${menu.title} - ${menu.id}`)
+		console.log(`Регистрирую меню ${menu.title} - ${menu.id}`);
 		return this.menus.set(id, menu);
 	}
 

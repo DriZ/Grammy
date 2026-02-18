@@ -1,4 +1,3 @@
-
 import { User, Account, UtilitiesReading, Tariff, Billing } from "../models/index.js";
 import type { CallbackContext, WizardScene } from "../types/index.js";
 
@@ -28,9 +27,9 @@ const createUserScene: WizardScene<CallbackContext> = {
 				if (existingUser) {
 					await ctx.reply("⚠️ Пользователь уже существует.");
 				} else {
-					const newUser = new User({ 
-						telegram_id: telegramId, 
-						name 
+					const newUser = new User({
+						telegram_id: telegramId,
+						name,
 					});
 					await newUser.save();
 					await ctx.reply(`✅ Пользователь ${name} создан!`);
@@ -41,8 +40,8 @@ const createUserScene: WizardScene<CallbackContext> = {
 			}
 			ctx.session.currentScene = null;
 			return ctx.scene.leave();
-		}
-	]
-}
+		},
+	],
+};
 
 export default createUserScene;

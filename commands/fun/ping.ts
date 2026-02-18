@@ -2,7 +2,6 @@ import Command from "../../structures/Command.js";
 import type BotClient from "../../core/Client.js";
 import { BaseContext, PermissionLevel } from "../../types/index.js";
 
-
 export default class PingCommand extends Command {
 	/**
 	 * Конструктор команды

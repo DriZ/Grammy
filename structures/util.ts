@@ -13,15 +13,14 @@ import { CallbackContext, Menu } from "../types/index.js";
 import { Account, Address, Tariff, UtilitiesReading } from "../models/index.js";
 import { InlineKeyboard } from "grammy";
 
-
 export function makeYearMonthKeyboard(selectedYear: number): InlineKeyboard {
 	const keyboard = new InlineKeyboard();
-	// месяцы 
+	// месяцы
 	for (let m = 1; m <= 12; m++) {
 		keyboard.text(`${m}`, `select-month-${selectedYear}-${m}`);
 		if (m % 3 === 0) keyboard.row();
 	}
-	// годы: выбранный год всегда в центре 
+	// годы: выбранный год всегда в центре
 	const years = [selectedYear - 1, selectedYear, selectedYear + 1];
 	years.forEach((y) => {
 		if (y === selectedYear) {
@@ -53,7 +52,7 @@ export function makeAddressMenu(addressId: string): Menu {
 				action: async (ctx: CallbackContext) => {
 					ctx.wizard.params.addreddId = addressId;
 					await ctx.services.sceneManager.enter(ctx, "delete-address");
-				}
+				},
 			},
 			{
 				text: "⬅️ Назад",
@@ -78,18 +77,26 @@ export function makeAddressMenu(addressId: string): Menu {
 									? "🔥"
 									: "";
 
-					ctx.services.menuHandler.registerMenu(`account-${acc._id.toString()}`, makeAccountMenu(acc._id.toString(), addressId));
-					keyboard.text(`${emoji} Счёт №${acc.account_number}`, `account-${acc._id}`).row();
+					ctx.services.menuHandler.registerMenu(
+						`account-${acc._id.toString()}`,
+						makeAccountMenu(acc._id.toString(), addressId),
+					);
+					keyboard
+						.text(`${emoji} Счёт №${acc.account_number}`, `account-${acc._id}`)
+						.row();
 				});
 			}
 
 			// стандартные кнопки
 			keyboard.text("➕ Добавить счёт", `create-account-${addressId}`).row();
-			if (accounts.length === 0) keyboard.text("🗑️ Удалить адрес", `delete-address-${addressId}`).row();
+			if (accounts.length === 0)
+				keyboard.text("🗑️ Удалить адрес", `delete-address-${addressId}`).row();
 			keyboard.text("⬅️ Назад", "utilities-menu");
 
 			if (ctx.callbackQuery) {
-				await ctx.callbackQuery.message?.editText(`📋 Счета по адресу ${address?.name}:`, { reply_markup: keyboard });
+				await ctx.callbackQuery.message?.editText(`📋 Счета по адресу ${address?.name}:`, {
+					reply_markup: keyboard,
+				});
 			} else {
 				await ctx.reply(`📋 Счета по адресу ${address?.name}:`, { reply_markup: keyboard });
 			}
@@ -110,18 +117,21 @@ export function makeAccountMenu(accountId: string, addressId: string): Menu {
 					ctx.wizard.params.accountId = accountId;
 					await ctx.services.sceneManager.enter(ctx, "create-tariff");
 				},
-			}, {
+			},
+			{
 				text: "📊 Показания",
 				callback: `readings-${accountId}`,
 				nextMenu: `readings-${accountId}`,
-			}, {
+			},
+			{
 				text: "🗑️ Удалить счёт",
 				callback: `delete-account-${accountId}`,
 				action: async (ctx) => {
 					ctx.wizard.params.accountId = accountId;
 					await ctx.services.sceneManager.enter(ctx, "delete-account");
 				},
-			}, {
+			},
+			{
 				text: "⬅️ Назад",
 				callback: `address-${addressId}`,
 				nextMenu: `address-${addressId}`,
@@ -129,19 +139,30 @@ export function makeAccountMenu(accountId: string, addressId: string): Menu {
 		],
 		action: async (ctx) => {
 			const keyboard = new InlineKeyboard()
-				.text("➕ Добавить тариф", `create-tariff-${accountId}`).row()
-				.text("📊 Показания", `readings-${accountId}`).row()
-				.text("🗑️ Удалить счёт", `delete-account-${accountId}`).row()
+				.text("➕ Добавить тариф", `create-tariff-${accountId}`)
+				.row()
+				.text("📊 Показания", `readings-${accountId}`)
+				.row()
+				.text("🗑️ Удалить счёт", `delete-account-${accountId}`)
+				.row()
 				.text("⬅️ Назад", `address-${addressId}`);
 
 			const account = await Account.findById(accountId);
-			ctx.services.menuHandler.registerMenu(`readings-${accountId}`, makeReadingsMenu(accountId));
+			ctx.services.menuHandler.registerMenu(
+				`readings-${accountId}`,
+				makeReadingsMenu(accountId),
+			);
 			if (ctx.callbackQuery) {
-				await ctx.callbackQuery.message?.editText(`⚡ Меню счёта ${account?.account_number}:`, {
-					reply_markup: keyboard
-				});
+				await ctx.callbackQuery.message?.editText(
+					`⚡ Меню счёта ${account?.account_number}:`,
+					{
+						reply_markup: keyboard,
+					},
+				);
 			} else {
-				await ctx.reply(`⚡ Меню счёта ${account?.account_number}:`, { reply_markup: keyboard });
+				await ctx.reply(`⚡ Меню счёта ${account?.account_number}:`, {
+					reply_markup: keyboard,
+				});
 			}
 		},
 	};
@@ -168,19 +189,27 @@ export function makeReadingsMenu(accountId: string): Menu {
 			},
 		],
 		action: async (ctx) => {
-			const readings = await UtilitiesReading.find({ account_id: accountId }).sort({ year: -1, month: -1 });
+			const readings = await UtilitiesReading.find({ account_id: accountId }).sort({
+				year: -1,
+				month: -1,
+			});
 			const keyboard = new InlineKeyboard();
 
 			if (readings.length > 0) {
 				readings.forEach((r) => {
 					ctx.services.menuHandler.registerMenu(
 						`reading-${r._id.toString()}`,
-						makeReadingMenu(r._id.toString(), accountId)
+						makeReadingMenu(r._id.toString(), accountId),
 					);
 
 					// формируем строку из зон
 					const zonesStr = r.zones.map((z) => `${z.name}: ${z.value}`).join(", ");
-					keyboard.text(`${r.month.toString().padStart(2, "0")}.${r.year} → ${zonesStr}`, `reading-${r._id}`).row();
+					keyboard
+						.text(
+							`${r.month.toString().padStart(2, "0")}.${r.year} → ${zonesStr}`,
+							`reading-${r._id}`,
+						)
+						.row();
 				});
 			}
 
@@ -231,7 +260,8 @@ export function makeReadingMenu(readingId: string, accountId: string): Menu {
 			const zonesStr = reading.zones.map((z) => `${z.name}: ${z.value}`).join("\n");
 
 			const keyboard = new InlineKeyboard()
-				.text("🗑️ Удалить показание", `delete-reading-${readingId}`).row()
+				.text("🗑️ Удалить показание", `delete-reading-${readingId}`)
+				.row()
 				.text("⬅️ Назад", `readings-${accountId}`);
 
 			const text = `📊 Показание за ${reading.month}.${reading.year}:\n${zonesStr}`;
@@ -266,14 +296,16 @@ export function makeTariffsMenu(accountId: string): Menu {
 			},
 		],
 		action: async (ctx) => {
-			const tariffs = await Tariff.find({ account_id: { accountId } }).sort({ startDate: -1 });
+			const tariffs = await Tariff.find({ account_id: { accountId } }).sort({
+				startDate: -1,
+			});
 			const keyboard = new InlineKeyboard();
 
 			if (tariffs.length > 0) {
 				tariffs.forEach((t) => {
 					ctx.services.menuHandler.registerMenu(
 						`tariff-${t._id.toString()}`,
-						makeTariffMenu(t._id.toString(), accountId)
+						makeTariffMenu(t._id.toString(), accountId),
 					);
 
 					const zonesStr = t.zones.map((z) => `${z.name}: ${z.price}₴`).join(", ");
@@ -324,7 +356,8 @@ export function makeTariffMenu(tariffId: string, accountId: string): Menu {
 			const zonesStr = tariff.zones.map((z) => `${z.name}: ${z.price}₴`).join("\n");
 
 			const keyboard = new InlineKeyboard()
-				.text("🗑️ Удалить тариф", `delete-tariff-${tariffId}`).row()
+				.text("🗑️ Удалить тариф", `delete-tariff-${tariffId}`)
+				.row()
 				.text("⬅️ Назад", `tariffs-${accountId}`);
 
 			const text = `💰 Тариф (${tariff.type})\n${zonesStr}\nНачало действия: ${tariff.startDate.toLocaleDateString()}`;
@@ -337,10 +370,6 @@ export function makeTariffMenu(tariffId: string, accountId: string): Menu {
 		},
 	};
 }
-
-
-
-
 
 // ======================
 // AZURE / MICROSOFT GRAPH
@@ -384,10 +413,7 @@ export async function getToken(): Promise<string> {
  * @param shareLink - Ссылка для общего доступа
  * @returns ID элемента OneDrive
  */
-export async function getItemId(
-	accessToken: string,
-	shareLink: string,
-): Promise<string> {
+export async function getItemId(accessToken: string, shareLink: string): Promise<string> {
 	const encodedLink = encodeURIComponent(shareLink);
 	const url = `https://graph.microsoft.com/v1.0/shares/u!${encodedLink}/driveItem`;
 
@@ -431,9 +457,7 @@ export async function readExcel(
 	});
 
 	if (!response.ok) {
-		throw new Error(
-			`Ошибка при чтении Excel: ${response.status} ${response.statusText}`,
-		);
+		throw new Error(`Ошибка при чтении Excel: ${response.status} ${response.statusText}`);
 	}
 
 	const data = (await response.json()) as { values: string[][] };
@@ -531,12 +555,17 @@ export function parseBoolean(value: string | number | boolean): boolean | null {
 }
 
 /**
- * Склоняет слово в зависимости от числа (русский язык)
- * @param count - Число для склонения
- * @param singular - Форма для 1 (например, "яблоко")
- * @param pluralFew - Форма для 2-4 (например, "яблока")
- * @param pluralMany - Форма для 5+ (например, "яблок")
- * @returns Правильная форма слова
+ * Склоняет слово в зависимости от числа (русский язык).
+ * @param count - Число для склонения.
+ * @param singular - Форма для 1 (например, "яблоко").
+ * @param pluralFew - Форма для 2-4 (например, "яблока").
+ * @param pluralMany - Форма для 5+ (например, "яблок").
+ * @returns {string} Правильная форма слова.
+ *
+ * @example
+ * pluralize(1, 'яблоко', 'яблока', 'яблок'); // 'яблоко'
+ * pluralize(3, 'яблоко', 'яблока', 'яблок'); // 'яблока'
+ * pluralize(5, 'яблоко', 'яблока', 'яблок'); // 'яблок'
  */
 export function pluralize(
 	count: number,

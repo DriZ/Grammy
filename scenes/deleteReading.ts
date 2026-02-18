@@ -9,16 +9,19 @@ const deleteReadingScene: WizardScene<CallbackContext> = {
 		async (ctx) => {
 			const readingId = ctx.wizard.params.readingId;
 			if (!readingId) {
-				await ctx.callbackQuery?.message?.editText("❌ Ошибка: не удалось определить показание.", {
-					reply_markup: new InlineKeyboard().text("Назад", "utilities-menu")
-				});
+				await ctx.callbackQuery?.message?.editText(
+					"❌ Ошибка: не удалось определить показание.",
+					{
+						reply_markup: new InlineKeyboard().text("Назад", "utilities-menu"),
+					},
+				);
 				return ctx.scene.leave();
 			}
 
 			const reading = await UtilitiesReading.findById(readingId);
 			if (!reading) {
 				await ctx.callbackQuery?.message?.editText("❌ Показание не найдено.", {
-					reply_markup: new InlineKeyboard().text("Назад", "utilities-menu")
+					reply_markup: new InlineKeyboard().text("Назад", "utilities-menu"),
 				});
 				return ctx.scene.leave();
 			}
@@ -30,20 +33,24 @@ const deleteReadingScene: WizardScene<CallbackContext> = {
 				`Вы уверены, что хотите удалить показания за ${reading.month}.${reading.year}?`,
 				{
 					reply_markup: new InlineKeyboard()
-						.text('Удалить', 'confirm').danger()
-						.text('Отмена', 'cancel')
-				}
+						.text("Удалить", "confirm")
+						.danger()
+						.text("Отмена", "cancel"),
+				},
 			);
 			return ctx.wizard.next();
 		},
 		// Шаг 2: Обработка решения
 		async (ctx) => {
 			const accountId = ctx.wizard.state.accountId;
-			const backBtn = new InlineKeyboard().text('Назад', accountId ? `account-${accountId}` : 'utilities-menu');
+			const backBtn = new InlineKeyboard().text(
+				"Назад",
+				accountId ? `account-${accountId}` : "utilities-menu",
+			);
 
 			if (ctx.callbackQuery?.data === "cancel") {
 				await ctx.callbackQuery.message?.editText("❌ Удаление отменено.", {
-					reply_markup: backBtn
+					reply_markup: backBtn,
 				});
 				return ctx.scene.leave();
 			}
@@ -52,12 +59,12 @@ const deleteReadingScene: WizardScene<CallbackContext> = {
 				const readingId = ctx.wizard.params.readingId;
 				await UtilitiesReading.findByIdAndDelete(readingId);
 				await ctx.callbackQuery.message?.editText("✅ Показания успешно удалены.", {
-					reply_markup: backBtn
+					reply_markup: backBtn,
 				});
 			}
 			return ctx.scene.leave();
-		}
-	]
-}
+		},
+	],
+};
 
 export default deleteReadingScene;

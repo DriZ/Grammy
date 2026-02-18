@@ -1,6 +1,5 @@
 import { SessionContext, WizardScene } from "../types/index.js";
 
-
 export class SceneManager {
 	private scenes = new Map<string, WizardScene<SessionContext>>();
 
@@ -14,7 +13,7 @@ export class SceneManager {
 		ctx.session.currentScene = sceneName;
 		ctx.session.step = 0;
 		ctx.session.wizardState = {};
-		console.log(`Вход в сцену ${ctx.session.currentScene}`)
+		console.log(`Вход в сцену ${ctx.session.currentScene}`);
 		await scene.steps[0](ctx);
 	}
 
@@ -41,7 +40,6 @@ export class SceneManager {
 		console.log(`Шаг изменился на ${ctx.session.step}`);
 	}
 
-
 	async back(ctx: SessionContext) {
 		const sceneName = ctx.session.currentScene;
 		if (!sceneName) return;
@@ -52,7 +50,6 @@ export class SceneManager {
 		ctx.session.step = Math.max((ctx.session.step ?? 0) - 1, 0);
 		console.log(`Шаг изменился на ${ctx.session.step}`);
 	}
-
 
 	async selectStep(ctx: SessionContext, stepIndex: number) {
 		const sceneName = ctx.session.currentScene;
@@ -76,9 +73,8 @@ export class SceneManager {
 		}
 	}
 
-
 	async leave(ctx: SessionContext) {
-		console.log(`Сцена остановлена: ${ctx.session.currentScene}`)
+		console.log(`Сцена остановлена: ${ctx.session.currentScene}`);
 		ctx.session.currentScene = null;
 		ctx.session.step = 0;
 		ctx.session.wizardState = {};

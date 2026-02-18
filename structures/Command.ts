@@ -9,27 +9,32 @@
  */
 
 import { PermissionLevel } from "../types/index.js";
-import type {
-	CommandInfo,
-	CommandConfig,
-	CommandOptions,
-	BaseContext,
-} from "../types/index.js";
+import type { CommandInfo, CommandConfig, CommandOptions, BaseContext } from "../types/index.js";
 import BotClient from "../core/Client.js";
 
 /**
- * Абстрактный (abstract) базовый класс для всех команд
+ * @abstract
+ * @class Command
+ * @description Абстрактный базовый класс для всех команд бота.
+ * Определяет общую структуру и обязательные методы для каждой команды.
+ * Нельзя создать экземпляр этого класса напрямую.
  *
- * abstract = класс, который служит шаблоном для других классов
- * Нельзя создать: new Command() ❌
- * Можно расширить: class MyCommand extends Command ✅
+ * @example
+ * class PingCommand extends Command {
+ *   constructor(client: BotClient) {
+ *     super(client, { name: 'ping', description: 'Checks bot latency.', permission: PermissionLevel.User });
+ *   }
+ *
+ *   async execute(ctx: BaseContext) {
+ *     await ctx.reply('Pong!');
+ *   }
+ * }
  */
 export default abstract class Command {
 	// Типизированные свойства
 	protected client: BotClient;
 	public info: CommandInfo;
 	public config: CommandConfig;
-
 	/**
 	 * Конструктор команды
 	 * @param client - экземпляр BotClient
@@ -37,7 +42,6 @@ export default abstract class Command {
 	 */
 	constructor(client: BotClient, options: CommandOptions) {
 		this.client = client;
-
 		// Деструктуризация с значениями по умолчанию
 		let {
 			name = null,
@@ -77,22 +81,24 @@ export default abstract class Command {
 	}
 
 	/**
-	 * Абстрактный метод execute
-	 * Каждая команда ДОЛЖНА реализовать этот метод
+	 * Абстрактный метод, который выполняется при вызове команды.
+	 * Каждая дочерняя команда ДОЛЖНА реализовать этот метод.
 	 *
-	 * @param ctx - контекст Telegraf с информацией о сообщении
+	 * @abstract
+	 * @param {BaseContext} ctx - Контекст grammY.
+	 * @param {string[]} [args] - Аргументы, переданные с командой.
+	 * @returns {Promise<void> | void}
 	 */
 	abstract execute(ctx: BaseContext, args?: string[]): Promise<void> | void;
 
 	/**
-	 * Перезагрузить команду
-	 * Выгружает и загружает команду заново
-	 *
-	 * @param ctx - опциональный контекст для отправки сообщений
+	 * Перезагружает текущую команду.
+	 * @param {BaseContext} [ctx] - Контекст для отправки сообщений о статусе перезагрузки.
+	 * @returns {Promise<void>}
 	 */
 	async reload(ctx?: BaseContext): Promise<void> {
 		// Отправляем сообщение о начале перезагрузки
-		let msg = ctx ? await ctx.reply("♻️ Перезагрузка команды...") : null;
+		const msg = ctx ? await ctx.reply("♻️ Перезагрузка команды...") : null;
 
 		// Задержка для визуального эффекта
 		await this.client.utils.sleep(500);
@@ -100,11 +106,11 @@ export default abstract class Command {
 		const commandPath = this.config.location;
 		if (!commandPath) {
 			if (msg && ctx) {
-				await ctx.editMessageText("❌ Не удалось перезагрузить команду: путь к файлу не найден.");
+				await ctx.editMessageText(
+					"❌ Не удалось перезагрузить команду: путь к файлу не найден.",
+				);
 			}
-			throw new Error(
-				`Cannot reload command ${this.info.name}: file path not found.`,
-			);
+			throw new Error(`Cannot reload command ${this.info.name}: file path not found.`);
 		}
 
 		// Выгружаем команду

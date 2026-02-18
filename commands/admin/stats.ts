@@ -15,10 +15,12 @@ function formatDuration(ms: number): string {
 		м: Math.floor(ms / 60000) % 60,
 		с: Math.floor(ms / 1000) % 60,
 	};
-	return Object.entries(time)
-		.filter(([, val]) => val !== 0)
-		.map(([key, val]) => `${val}${key}`)
-		.join(' ') || '0с';
+	return (
+		Object.entries(time)
+			.filter(([, val]) => val !== 0)
+			.map(([key, val]) => `${val}${key}`)
+			.join(" ") || "0с"
+	);
 }
 
 export default class StatsCommand extends Command {

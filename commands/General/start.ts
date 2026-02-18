@@ -18,25 +18,25 @@ export default class extends Command {
 			description: "",
 			permission: PermissionLevel.User,
 			showInMenu: false,
-		})
-		this.client = client
+		});
+		this.client = client;
 	}
 
 	async execute(ctx: CallbackContext): Promise<void> {
 		await ctx.msg?.delete();
-		const mainMenu = this.client.menuHandler.menus.get("main-menu"); 
-		if (!mainMenu) { 
+		const mainMenu = this.client.menuHandler.menus.get("main-menu");
+		if (!mainMenu) {
 			await ctx.reply("❌ Главное меню не найдено.");
-			return
-		} 
-		const keyboard = new Keyboard(); 
-		mainMenu.buttons.forEach((b) => keyboard.text(b.text).row()); 
+			return;
+		}
+		const keyboard = new Keyboard();
+		mainMenu.buttons.forEach((b) => keyboard.text(b.text).row());
 		keyboard.text("🤖 Команды").row();
-		
-		let user = await User.findOne({ telegram_id: ctx.from?.id});
+
+		const user = await User.findOne({ telegram_id: ctx.from?.id });
 		if (!user) User.create({ telegram_id: ctx.from?.id, name: ctx.from?.first_name });
 
 		await ctx.reply(mainMenu.title, { reply_markup: keyboard.resized() });
-		return
+		return;
 	}
 }

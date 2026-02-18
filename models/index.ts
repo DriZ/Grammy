@@ -8,19 +8,38 @@ import { Billing } from "./billing.js";
 import { Address, IAddress } from "./address.js";
 import { UserAddress, IUserAddress } from "./userAddress.js";
 
-
 async function initializeDatabase(): Promise<void> {
-  try {
-    const mongoUrl = process.env.MONGODB_URL;
-    if (!mongoUrl) {
-      throw new Error("MONGODB_URL не установлена!");
-    }
-    await mongoose.connect(mongoUrl as string);
-    console.log("✅ Подключение к БД успешно");
-  } catch (error) {
-    console.error("❌ Ошибка подключения к БД:", error);
-    throw error;
-  }
+	try {
+		const mongoUrl = process.env.MONGODB_URL;
+		if (!mongoUrl) {
+			throw new Error("MONGODB_URL не установлена!");
+		}
+		await mongoose.connect(mongoUrl as string);
+		console.log("✅ Подключение к БД успешно");
+	} catch (error) {
+		console.error("❌ Ошибка подключения к БД:", error);
+		throw error;
+	}
 }
 
-export { mongoose, initializeDatabase, MeterType, ZoneReading, Address, IAddress, User, IUser, UserAddress, IUserAddress, Account, IAccount, UserAccount, IUserAccount, UtilitiesReading, Tariff, TariffType, ZoneParams, Billing };
+export {
+	mongoose,
+	initializeDatabase,
+	MeterType,
+	ZoneReading,
+	Address,
+	IAddress,
+	User,
+	IUser,
+	UserAddress,
+	IUserAddress,
+	Account,
+	IAccount,
+	UserAccount,
+	IUserAccount,
+	UtilitiesReading,
+	Tariff,
+	TariffType,
+	ZoneParams,
+	Billing,
+};

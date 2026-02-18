@@ -2,7 +2,6 @@ import Command from "../../structures/Command.js";
 import { PermissionLevel, type BaseContext } from "../../types/index.js";
 import type BotClient from "../../core/Client.js";
 
-
 export default class WhoamiCommand extends Command {
 	constructor(client: BotClient) {
 		super(client, {
@@ -16,7 +15,6 @@ export default class WhoamiCommand extends Command {
 			permission: PermissionLevel.Admin,
 		});
 	}
-
 
 	async execute(ctx: BaseContext): Promise<void> {
 		const user = ctx.from!;

@@ -10,8 +10,8 @@ const addressSchema = new Schema<IAddress>(
 	{
 		name: { type: Schema.Types.String, required: true },
 		createdAt: { type: Schema.Types.Date, default: Date.now },
-	}, 
-	{ timestamps: true }
+	},
+	{ timestamps: true },
 );
 
 export const Address = model<IAddress>("Address", addressSchema);

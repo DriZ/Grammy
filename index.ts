@@ -2,7 +2,7 @@ import dotenv from "dotenv/config.js";
 import BotClient from "./core/Client.js";
 import { initializeDatabase, mongoose } from "./models/index.js";
 import { GrammyError, HttpError } from "grammy";
-dotenv
+dotenv;
 
 function logStartup(): void {
 	console.log("🚀 Запуск приложения...");

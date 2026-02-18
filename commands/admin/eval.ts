@@ -27,7 +27,7 @@ export default class EvalCommand extends Command {
 		try {
 			// Выполняем код. Переменные ctx, this.client, args доступны внутри eval
 			let evaled;
-			if (code.includes('await')) {
+			if (code.includes("await")) {
 				evaled = await eval(`(async () => { ${code} })()`);
 			} else {
 				evaled = await eval(code);
@@ -40,23 +40,30 @@ export default class EvalCommand extends Command {
 
 			// Скрываем токен
 			if (process.env.TOKEN) {
-				evaled = evaled.split(process.env.TOKEN).join('[TOKEN REDACTED]');
+				evaled = evaled.split(process.env.TOKEN).join("[TOKEN REDACTED]");
 			}
 
 			// Экранируем обратные кавычки для Markdown
 			// evaled = evaled.replace(/`/g, "`" + String.fromCharCode(8203));
 
 			if (evaled.length > 4000) {
-				await ctx.reply(`📤 **Результат (обрезан):**\n\`\`\`js\n${evaled.substring(0, 4000)}...\n\`\`\``, { parse_mode: "Markdown" });
+				await ctx.reply(
+					`📤 **Результат (обрезан):**\n\`\`\`js\n${evaled.substring(0, 4000)}...\n\`\`\``,
+					{ parse_mode: "Markdown" },
+				);
 			} else {
-				await ctx.reply(`📤 **Результат:**\n\`\`\`js\n${evaled}\n\`\`\``, { parse_mode: "Markdown" });
+				await ctx.reply(`📤 **Результат:**\n\`\`\`js\n${evaled}\n\`\`\``, {
+					parse_mode: "Markdown",
+				});
 			}
 		} catch (err) {
 			let errorMsg = String(err);
 			if (process.env.TOKEN) {
-				errorMsg = errorMsg.split(process.env.TOKEN).join('[TOKEN REDACTED]');
+				errorMsg = errorMsg.split(process.env.TOKEN).join("[TOKEN REDACTED]");
 			}
-			await ctx.reply(`❌ **Ошибка:**\n\`\`\`js\n${errorMsg}\n\`\`\``, { parse_mode: "Markdown" });
+			await ctx.reply(`❌ **Ошибка:**\n\`\`\`js\n${errorMsg}\n\`\`\``, {
+				parse_mode: "Markdown",
+			});
 		}
 	}
 }

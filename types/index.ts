@@ -3,7 +3,7 @@ import { HydrateFlavor } from "@grammyjs/hydrate";
 import MenuHandler from "../core/menuHandler";
 import SceneHandler from "../core/sceneHandler";
 import { SceneManager } from "../core/SceneManager.js";
-import * as utils from "../structures/util.js"
+import * as utils from "../structures/util.js";
 import CommandManager from "../core/CommandManager.js";
 
 // ============================================================
@@ -52,7 +52,7 @@ export interface Command {
 	config: CommandConfig;
 }
 
-/** * Уровни прав доступа: 
+/** * Уровни прав доступа:
  * - User (0): доступ для всех пользователей
  * - Admin (1): доступ только администраторам или владельцу
  * - Owner (2): доступ только владельцу
@@ -103,8 +103,9 @@ export interface ServicesFlavor {
 	utils: typeof utils;
 }
 
-export type BaseContext = HydrateFlavor<Context> & ServicesFlavor
-export type SessionContext = BaseContext & SessionFlavor<SessionData> & {
+export type BaseContext = HydrateFlavor<Context> & ServicesFlavor;
+export type SessionContext = BaseContext &
+	SessionFlavor<SessionData> & {
 		wizard: {
 			next: () => Promise<void>;
 			back: () => Promise<void>;
@@ -115,8 +116,8 @@ export type SessionContext = BaseContext & SessionFlavor<SessionData> & {
 		scene: {
 			leave: () => Promise<void>;
 		};
-	}
-export type CallbackContext = CallbackQueryContext<SessionContext> & SessionContext
+	};
+export type CallbackContext = CallbackQueryContext<SessionContext> & SessionContext;
 
 export interface Scene<C> {
 	name: string;
@@ -141,7 +142,7 @@ export interface MenuButton {
 	text: string;
 	nextMenu?: string;
 	callback: string; // для inline кнопок
-	action?: (ctx: CallbackContext) => void
+	action?: (ctx: CallbackContext) => void;
 }
 
 /**
@@ -152,7 +153,7 @@ export interface Menu {
 	title: string;
 	buttons: MenuButton[];
 	callback?: string;
-	inline: Boolean;
+	inline: boolean;
 	action?: (ctx: CallbackContext) => void;
 }
 
@@ -180,8 +181,6 @@ export interface CreateAccountWizardState {
 	name: string;
 }
 
-
-
 // ============================================================
 // 🔌 Типы API и данных от сервиса
 // ============================================================
@@ -205,25 +204,25 @@ export type StatusesMap = Record<string, StatusInfo>;
 export type Provider = "novaposhta" | "ukrposhta" | "meest" | "rozetka";
 
 export interface Ord_delivery_data {
-	senderId: number,
-	cityName: string,
-	provider: Provider,
-	type: "WarehouseWarehouse" | "WarehouseAddress",
-	parentTrackingNumber: string | null,
-	trackingNumber: string,
-	isPrinted: 1 | 0,
-	statusCode: number,
-	areaName: string,
-	regionName: string,
-	cityType: 'с.' | 'м.' | 'смт.',
-	hasPostpay: 1 | 0,
-	postpaySum: number,
-	branchNumber: string,
-	address: string,
-	paumentMethod: "Cash" | "Card",
-	postpayPayer: string,
-	cargoType: "Cargo" | "Parcel",
-	addedToRegister: 1 | 0,
+	senderId: number;
+	cityName: string;
+	provider: Provider;
+	type: "WarehouseWarehouse" | "WarehouseAddress";
+	parentTrackingNumber: string | null;
+	trackingNumber: string;
+	isPrinted: 1 | 0;
+	statusCode: number;
+	areaName: string;
+	regionName: string;
+	cityType: "с." | "м." | "смт.";
+	hasPostpay: 1 | 0;
+	postpaySum: number;
+	branchNumber: string;
+	address: string;
+	paumentMethod: "Cash" | "Card";
+	postpayPayer: string;
+	cargoType: "Cargo" | "Parcel";
+	addedToRegister: 1 | 0;
 }
 
 export interface Contact {

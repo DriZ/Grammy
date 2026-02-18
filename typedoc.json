@@ -1,0 +1,21 @@
+{
+	"$schema": "https://typedoc.org/schema.json",
+	"entryPoints": [
+		"./index.ts",
+		"./core",
+		"./structures",
+		"./commands",
+		"./events",
+		"./scenes",
+		"./types",
+		"./menus"
+	],
+	"entryPointStrategy": "expand",
+	"out": "docs/api",
+	"name": "Grammy Bot Documentation",
+	"readme": "./README.md",
+	"exclude": ["node_modules", "dist", "**/*.bak.ts", "*.md"],
+	"theme": "default",
+	"excludePrivate": true,
+	"excludeProtected": true
+}

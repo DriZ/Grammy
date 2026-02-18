@@ -11,9 +11,12 @@ const createTariffScene: WizardScene<CallbackContext> = {
 		async (ctx) => {
 			await ctx.callbackQuery?.message?.editText("Выберите тип тарифа:", {
 				reply_markup: new InlineKeyboard()
-					.text("Однотарифный", MeterType.SINGLE).row()
-					.text("День/Ночь", MeterType.DAY_NIGHT).row()
-					.text("Пик/Полупик/Ночь", MeterType.MULTI_ZONE).row()
+					.text("Однотарифный", MeterType.SINGLE)
+					.row()
+					.text("День/Ночь", MeterType.DAY_NIGHT)
+					.row()
+					.text("Пик/Полупик/Ночь", MeterType.MULTI_ZONE)
+					.row()
 					.text("Отмена", "cancel"),
 			});
 			return ctx.wizard.next();
@@ -31,11 +34,17 @@ const createTariffScene: WizardScene<CallbackContext> = {
 			ctx.wizard.state.accountId = ctx.wizard.params.accountId;
 
 			if (type === MeterType.SINGLE) {
-				await ctx.callbackQuery?.message?.editText("Введите цену (₴/кВт·ч):", { reply_markup: cancelBtn });
+				await ctx.callbackQuery?.message?.editText("Введите цену (₴/кВт·ч):", {
+					reply_markup: cancelBtn,
+				});
 			} else if (type === MeterType.DAY_NIGHT) {
-				await ctx.callbackQuery?.message?.editText("Введите цену для Дня (₴/кВт·ч):", { reply_markup: cancelBtn });
+				await ctx.callbackQuery?.message?.editText("Введите цену для Дня (₴/кВт·ч):", {
+					reply_markup: cancelBtn,
+				});
 			} else if (type === MeterType.MULTI_ZONE) {
-				await ctx.callbackQuery?.message?.editText("Введите цену для Пика (₴/кВт·ч):", { reply_markup: cancelBtn });
+				await ctx.callbackQuery?.message?.editText("Введите цену для Пика (₴/кВт·ч):", {
+					reply_markup: cancelBtn,
+				});
 			}
 
 			ctx.wizard.state.message = ctx.callbackQuery?.message;
@@ -46,7 +55,9 @@ const createTariffScene: WizardScene<CallbackContext> = {
 		async (ctx) => {
 			const price = parseFloat(ctx.msg?.text || "");
 			if (isNaN(price)) {
-				await ctx.wizard.state.message?.editText("❌ Введите число.", { reply_markup: cancelBtn });
+				await ctx.wizard.state.message?.editText("❌ Введите число.", {
+					reply_markup: cancelBtn,
+				});
 				return ctx.wizard.back();
 			}
 
@@ -60,13 +71,17 @@ const createTariffScene: WizardScene<CallbackContext> = {
 
 			if (type === MeterType.DAY_NIGHT) {
 				ctx.wizard.state.zones = [{ name: "day", price }];
-				await ctx.wizard.state.message?.editText("Введите цену для Ночи (₴/кВт·ч):", { reply_markup: cancelBtn });
+				await ctx.wizard.state.message?.editText("Введите цену для Ночи (₴/кВт·ч):", {
+					reply_markup: cancelBtn,
+				});
 				return ctx.wizard.next();
 			}
 
 			if (type === MeterType.MULTI_ZONE) {
 				ctx.wizard.state.zones = [{ name: "peak", price }];
-				await ctx.wizard.state.message?.editText("Введите цену для Полупика (₴/кВт·ч):", { reply_markup: cancelBtn });
+				await ctx.wizard.state.message?.editText("Введите цену для Полупика (₴/кВт·ч):", {
+					reply_markup: cancelBtn,
+				});
 				return ctx.wizard.next();
 			}
 		},
@@ -75,7 +90,9 @@ const createTariffScene: WizardScene<CallbackContext> = {
 		async (ctx) => {
 			const price = parseFloat(ctx.msg?.text || "");
 			if (isNaN(price)) {
-				await ctx.wizard.state.message?.editText("❌ Введите число.", { reply_markup: cancelBtn });
+				await ctx.wizard.state.message?.editText("❌ Введите число.", {
+					reply_markup: cancelBtn,
+				});
 				return ctx.wizard.back();
 			}
 
@@ -89,7 +106,9 @@ const createTariffScene: WizardScene<CallbackContext> = {
 
 			if (type === MeterType.MULTI_ZONE) {
 				ctx.wizard.state.zones.push({ name: "half-peak", price });
-				await ctx.wizard.state.message?.editText("Введите цену для Ночи (₴/кВт·ч):", { reply_markup: cancelBtn });
+				await ctx.wizard.state.message?.editText("Введите цену для Ночи (₴/кВт·ч):", {
+					reply_markup: cancelBtn,
+				});
 				return ctx.wizard.next();
 			}
 		},
@@ -98,7 +117,9 @@ const createTariffScene: WizardScene<CallbackContext> = {
 		async (ctx) => {
 			const price = parseFloat(ctx.msg?.text || "");
 			if (isNaN(price)) {
-				await ctx.wizard.state.message?.editText("❌ Введите число.", { reply_markup: cancelBtn });
+				await ctx.wizard.state.message?.editText("❌ Введите число.", {
+					reply_markup: cancelBtn,
+				});
 				return ctx.wizard.back();
 			}
 
@@ -120,7 +141,7 @@ async function saveTariff(ctx: CallbackContext) {
 		});
 
 		await ctx.wizard.state.message?.editText(
-			`✅ Тариф добавлен:\n${ctx.wizard.state.zones.map((z: ZoneParams) => `${z.name}: ${z.price}₴`).join("\n")}`
+			`✅ Тариф добавлен:\n${ctx.wizard.state.zones.map((z: ZoneParams) => `${z.name}: ${z.price}₴`).join("\n")}`,
 		);
 
 		// возврат в меню тарифов
@@ -132,4 +153,4 @@ async function saveTariff(ctx: CallbackContext) {
 	return ctx.scene.leave();
 }
 
-export default createTariffScene
+export default createTariffScene;

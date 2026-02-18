@@ -18,11 +18,15 @@ export interface IAccount extends Document {
 const accountSchema = new Schema<IAccount>(
 	{
 		account_number: { type: Schema.Types.String, required: true, unique: true },
-		resource: { type: Schema.Types.String, enum: ["electricity", "water", "gas"], required: true },
+		resource: {
+			type: Schema.Types.String,
+			enum: ["electricity", "water", "gas"],
+			required: true,
+		},
 		address_id: { type: Schema.Types.ObjectId, required: true },
 		meterType: { type: String, enum: MeterType },
 	},
-	{ timestamps: true }
+	{ timestamps: true },
 );
 
 export const Account = model<IAccount>("Account", accountSchema);

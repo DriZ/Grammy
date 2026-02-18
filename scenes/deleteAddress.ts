@@ -11,24 +11,30 @@ const deleteAccountScene: WizardScene<CallbackContext> = {
 		async (ctx) => {
 			const addressId = ctx.wizard.params.addressId;
 			if (!addressId) {
-				await ctx.callbackQuery?.message?.editText("❌ Ошибка: не удалось определить адрес для удаления.", {
-					reply_markup: cancelBtn
-				});
+				await ctx.callbackQuery?.message?.editText(
+					"❌ Ошибка: не удалось определить адрес для удаления.",
+					{
+						reply_markup: cancelBtn,
+					},
+				);
 				return ctx.scene.leave();
 			}
 			const address = await Address.findById(addressId);
-			await ctx.callbackQuery?.message?.editText(`Вы уверены, что хотите удалить адрес ${address?.name}?`, {
-				reply_markup: new InlineKeyboard()
-					.text('Удалить', 'confirm').danger()
-					.text('Отмена', 'cancel')
-			});
+			await ctx.callbackQuery?.message?.editText(
+				`Вы уверены, что хотите удалить адрес ${address?.name}?`,
+				{
+					reply_markup: new InlineKeyboard()
+						.text("Удалить", "confirm")
+						.danger()
+						.text("Отмена", "cancel"),
+				},
+			);
 			return ctx.wizard.next();
 		},
 		async (ctx) => {
 			if (ctx.callbackQuery?.data === "cancel") {
 				await ctx.callbackQuery.message?.editText("❌ Удаление отменено.", {
-					reply_markup: new InlineKeyboard()
-						.text('Назад', 'utilities-menu')
+					reply_markup: new InlineKeyboard().text("Назад", "utilities-menu"),
 				});
 				return ctx.scene.leave();
 			}
@@ -42,7 +48,7 @@ const deleteAccountScene: WizardScene<CallbackContext> = {
 						: "✅ Адрес отвязан от вашего профиля.";
 
 					await ctx.callbackQuery.message?.editText(msg, {
-						reply_markup: new InlineKeyboard().text('Назад', 'utilities-menu')
+						reply_markup: new InlineKeyboard().text("Назад", "utilities-menu"),
 					});
 				} catch (err) {
 					console.error(err);
@@ -52,8 +58,8 @@ const deleteAccountScene: WizardScene<CallbackContext> = {
 				}
 			}
 			return ctx.scene.leave();
-		}
-	]
-}
+		},
+	],
+};
 
 export default deleteAccountScene;

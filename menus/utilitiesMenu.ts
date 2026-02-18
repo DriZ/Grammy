@@ -26,11 +26,14 @@ const utilitiesMenu: Menu = {
 	],
 	action: async (ctx) => {
 		const telegramId = ctx.from?.id;
-		if (!telegramId) return ctx.callbackQuery.message?.editText(utilitiesMenu.title, {
-			reply_markup: new InlineKeyboard().text('❌ Закрыть', 'cancel')
-		});
+		if (!telegramId)
+			return ctx.callbackQuery.message?.editText(utilitiesMenu.title, {
+				reply_markup: new InlineKeyboard().text("❌ Закрыть", "cancel"),
+			});
 
-		const userAddresses = await UserAddress.find({ telegram_id: telegramId }).populate("address_id");
+		const userAddresses = await UserAddress.find({ telegram_id: telegramId }).populate(
+			"address_id",
+		);
 		const keyboard = new InlineKeyboard();
 
 		if (userAddresses.length > 0) {
@@ -40,7 +43,8 @@ const utilitiesMenu: Menu = {
 
 				// Регистрируем меню для этого адреса
 				const addrMenu = ctx.utils.makeAddressMenu(addr._id.toString());
-				if (!ctx.services.menuHandler.menus.has(addrMenu.id)) ctx.services.menuHandler.registerMenu(addrMenu.id, addrMenu);
+				if (!ctx.services.menuHandler.menus.has(addrMenu.id))
+					ctx.services.menuHandler.registerMenu(addrMenu.id, addrMenu);
 
 				keyboard.text(`🏠 ${addr.name}`, callback).row();
 			});
@@ -52,7 +56,9 @@ const utilitiesMenu: Menu = {
 		});
 
 		if (ctx.callbackQuery) {
-			await ctx.callbackQuery.message?.editText(utilitiesMenu.title, { reply_markup: keyboard });
+			await ctx.callbackQuery.message?.editText(utilitiesMenu.title, {
+				reply_markup: keyboard,
+			});
 		} else {
 			await ctx.reply(utilitiesMenu.title, { reply_markup: keyboard });
 		}

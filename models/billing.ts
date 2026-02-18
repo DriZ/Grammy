@@ -12,9 +12,9 @@ const billingSchema = new Schema<IBilling>(
 	{
 		account_id: { type: Schema.Types.ObjectId, required: true, ref: "Account" },
 		month: { type: Date, required: true },
-		total_cost: { type: Number, required: true, min: 0 }
+		total_cost: { type: Number, required: true, min: 0 },
 	},
-	{ timestamps: true }
+	{ timestamps: true },
 );
 
 billingSchema.index({ account_id: 1, month: 1 }, { unique: true });

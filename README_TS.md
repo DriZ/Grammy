@@ -1,8 +1,15 @@
-# 🚀 Telegraf Bot с TypeScript
+# 🚀 Шаблон Telegram-бота на grammY и TypeScript
 
-Бот на Telegram с использованием **TypeScript** для полной типизации и безопасности.
+Мощный и масштабируемый шаблон для создания Telegram-ботов с использованием **grammY** и **TypeScript**. Проект обеспечивает полную статическую типизацию для надежной и безопасной разработки.
 
 ---
+
+<p align="center">
+  <img src="https://img.shields.io/badge/grammY-v1.x-blue?logo=telegram" alt="grammY">
+  <img src="https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Node.js-18+-green?logo=nodedotjs" alt="Node.js">
+  <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
+</p>
 
 ## 📖 Документация по миграции на TypeScript
 
@@ -134,18 +141,18 @@ import { Context } from "telegraf";
 import type BotClient from "../../core/Client.js";
 
 export default class MyCommand extends Command {
-  constructor(client: BotClient) {
-    super(client, {
-      description: "Описание команды",
-      aliases: ["short", "alias"], // Альтернативные имена
-      permission: 0, // 0=все, 1=админ, 2=владелец
-    });
-  }
+	constructor(client: BotClient) {
+		super(client, {
+			description: "Описание команды",
+			aliases: ["short", "alias"], // Альтернативные имена
+			permission: 0, // 0=все, 1=админ, 2=владелец
+		});
+	}
 
-  async execute(ctx: Context): Promise<void> {
-    // Ваш код здесь
-    await ctx.reply("Ответ бота");
-  }
+	async execute(ctx: Context): Promise<void> {
+		// Ваш код здесь
+		await ctx.reply("Ответ бота");
+	}
 }
 ```
 
@@ -169,14 +176,14 @@ import { Context } from "telegraf";
 import type BotClient from "../core/Client.js";
 
 export default class MyEvent extends Event {
-  constructor(client: BotClient, name: string) {
-    super(client, name);
-  }
+	constructor(client: BotClient, name: string) {
+		super(client, name);
+	}
 
-  async execute(ctx: Context): Promise<void> {
-    // Ваш код здесь
-    console.log("Событие сработало!");
-  }
+	async execute(ctx: Context): Promise<void> {
+		// Ваш код здесь
+		console.log("Событие сработало!");
+	}
 }
 ```
 
@@ -184,13 +191,13 @@ export default class MyEvent extends Event {
 
 ---
 
-## 🔑 Ключевые TypeScript концепции
+## 🔑 Ключевые концепции
 
 ### Типизация функций
 
 ```typescript
 async function loadCommands(dir: string): Promise<Map<string, Command>> {
-  // ...
+	// ...
 }
 ```
 
@@ -198,9 +205,9 @@ async function loadCommands(dir: string): Promise<Map<string, Command>> {
 
 ```typescript
 interface UserConfig {
-  id: number;
-  name: string;
-  role?: "admin" | "user";
+	id: number;
+	name: string;
+	role?: "admin" | "user";
 }
 ```
 
@@ -208,7 +215,7 @@ interface UserConfig {
 
 ```typescript
 abstract class Command {
-  abstract execute(ctx: Context): Promise<void>;
+	abstract execute(ctx: Context): Promise<void>;
 }
 ```
 
@@ -228,14 +235,13 @@ const userId = ctx.from?.id;
 
 ---
 
-## 📚 Использованные библиотеки
+## 📚 Основные библиотеки
 
-- **telegraf** - Telegram Bot API
+- **grammy** - Основной фреймворк для работы с Telegram Bot API.
+- **@grammyjs/hydrate** - плагин для улучшения контекста.
 - **sequelize** - ORM для БД
-- **postgres** - PostgreSQL драйвер
 - **axios** - HTTP клиент
 - **dotenv** - Загрузка переменных окружения
-- **@azure/msal-node** - Azure auth
 - **TypeScript** - Статическая типизация
 
 ---
@@ -289,7 +295,7 @@ const user: BotUser = await getUser();
 
 ## 📖 Дополнительная информация
 
-- [Telegraf документация](https://telegraf.js.org/)
+- [grammY документация](https://grammy.dev/)
 - [TypeScript справочник](https://www.typescriptlang.org/docs/)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 

@@ -1,33 +1,52 @@
 {
-  "name": "telegraf",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/index.js",
-  "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "start": "npm run build && node -r dotenv/config dist/index.js",
-    "dev": "node --loader ts-node/esm -r dotenv/config index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@azure/msal-node": "^5.0.2",
-    "@grammyjs/hydrate": "^1.6.0",
-    "@supabase/supabase-js": "^2.95.3",
-    "axios": "^1.13.4",
-    "dotenv": "^17.2.3",
-    "glob": "^13.0.5",
-    "grammy": "^1.40.0",
-    "mongoose": "^9.1.6",
-    "pg": "^8.18.0",
-    "postgres": "^3.4.8",
-    "sequelize": "^6.37.7"
-  },
-  "devDependencies": {
-    "@types/node": "^20.10.6",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
-  }
+	"name": "telegraf",
+	"version": "1.0.0",
+	"description": "",
+	"main": "dist/index.js",
+	"type": "module",
+	"scripts": {
+		"prepare": "husky",
+		"build": "tsc",
+		"docs": "typedoc",
+		"start": "npm run build && node -r dotenv/config dist/index.js",
+		"dev": "node --loader ts-node/esm -r dotenv/config index.ts",
+		"lint": "eslint . --ext .ts",
+		"lint:fix": "eslint . --ext .ts --fix",
+		"format": "prettier --write .",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "DriZ",
+	"license": "MIT",
+	"dependencies": {
+		"@azure/msal-node": "^5.0.2",
+		"@grammyjs/hydrate": "^1.6.0",
+		"@supabase/supabase-js": "^2.95.3",
+		"axios": "^1.13.4",
+		"dotenv": "^17.2.3",
+		"glob": "^13.0.5",
+		"grammy": "^1.40.0",
+		"mongoose": "^9.1.6",
+		"pg": "^8.18.0",
+		"postgres": "^3.4.8",
+		"sequelize": "^6.37.7"
+	},
+	"devDependencies": {
+		"@typescript-eslint/eslint-plugin": "^6.18.0",
+		"@typescript-eslint/parser": "^6.18.0",
+		"@types/node": "^20.10.6",
+		"eslint": "^8.56.0",
+		"eslint-config-prettier": "^9.1.0",
+		"husky": "^9.0.11",
+		"lint-staged": "^15.2.7",
+		"prettier": "^3.1.1",
+		"ts-node": "^10.9.2",
+		"typedoc": "^0.28.17",
+		"typescript": "^5.9.3"
+	},
+	"lint-staged": {
+		"*.ts": [
+			"eslint --fix",
+			"prettier --write"
+		]
+	}
 }

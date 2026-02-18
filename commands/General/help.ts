@@ -22,8 +22,11 @@ export default class HelpCommand extends Command {
 		// Если передан аргумент и это НЕ число (например, /help ping), показываем инфо о команде
 		if (firstArg && !isPageNumber) {
 			const commandName = firstArg.toLowerCase();
-			const command = this.client.commandManager.commands.get(commandName) ||
-				this.client.commandManager.commands.get(this.client.commandManager.aliases.get(commandName) || "");
+			const command =
+				this.client.commandManager.commands.get(commandName) ||
+				this.client.commandManager.commands.get(
+					this.client.commandManager.aliases.get(commandName) || "",
+				);
 
 			if (!command) {
 				await ctx.reply(`❌ Команда "${commandName}" не найдена.`);
@@ -62,8 +65,9 @@ export default class HelpCommand extends Command {
 		if (isOwner) userPerm = PermissionLevel.Owner;
 
 		// Получаем все команды и фильтруем по правам
-		const commands = Array.from(this.client.commandManager.commands.values())
-			.filter(cmd => cmd.config.permission <= userPerm);
+		const commands = Array.from(this.client.commandManager.commands.values()).filter(
+			(cmd) => cmd.config.permission <= userPerm,
+		);
 
 		// Сортируем: сначала по категории, потом по имени
 		commands.sort((a, b) => {

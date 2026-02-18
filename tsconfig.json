@@ -1,40 +1,40 @@
 {
-  "compilerOptions": {
-    // Целевая версия JavaScript
-    "target": "ES2020",
+	"compilerOptions": {
+		// Целевая версия JavaScript
+		"target": "ES2020",
 
-    // Используем ES modules (как сейчас в проекте)
-    "module": "ES2020",
+		// Используем ES modules (как сейчас в проекте)
+		"module": "ES2020",
 
-    // Директория выхода скомпилированного кода
-    "outDir": "./dist",
+		// Директория выхода скомпилированного кода
+		"outDir": "./dist",
 
-    // Директория исходного кода
-    "rootDir": "./",
+		// Директория исходного кода
+		"rootDir": "./",
 
-    // Строгая типизация
-    "strict": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictPropertyInitialization": true,
-    "noImplicitAny": true,
+		// Строгая типизация
+		"strict": true,
+		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"strictPropertyInitialization": true,
+		"noImplicitAny": true,
 
-    // Модули
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+		// Модули
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
 
-    // Другие полезные опции
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "resolveJsonModule": true,
+		// Другие полезные опции
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"resolveJsonModule": true,
 
-    // Не комментировать код в выходе
-    "removeComments": true
-  },
-  "include": ["**/*.ts", "core/sceneHandler.ts.bak"],
-  "exclude": ["node_modules", "dist"]
+		// Не комментировать код в выходе
+		"removeComments": true
+	},
+	"include": ["**/*.ts"],
+	"exclude": ["node_modules", "dist"]
 }

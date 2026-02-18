@@ -1,5 +1,11 @@
 import { Bot, session, MemorySessionStorage } from "grammy";
-import type { OrderItem, StatusesMap, StatusData, SessionData, SessionContext, CallbackContext } from "../types/index.js";
+import type {
+	StatusesMap,
+	StatusData,
+	SessionData,
+	SessionContext,
+	CallbackContext,
+} from "../types/index.js";
 import CommandManager from "./CommandManager.js";
 import { createCommandHandler } from "./commandHandler.js";
 import EventHandler from "./eventHandler.js";
@@ -11,8 +17,12 @@ import { hydrate } from "@grammyjs/hydrate";
 import { SceneManager } from "./SceneManager.js";
 import SceneHandler from "./sceneHandler.js";
 import { ActionRouter } from "./actionRouter.js";
-
-
+/**
+ * @class BotClient
+ * @extends Bot
+ * @description Основной класс бота, который расширяет стандартный клиент grammY.
+ * Отвечает за инициализацию всех модулей, обработчиков и сессий.
+ */
 export default class BotClient extends Bot<SessionContext> {
 	// Типизированные свойства класса
 	public commandManager: CommandManager;
@@ -34,6 +44,10 @@ export default class BotClient extends Bot<SessionContext> {
 	private readonly SALESDRIVES_ORDER_LIST_URL = `${this.SALESDRIVES_BASE_URL}/order/list/`;
 	private readonly SALESDRIVES_STATUS_LIST_URL = `${this.SALESDRIVES_BASE_URL}/statuses/`;
 
+	/**
+	 * @constructor
+	 * @param {string} token - Токен Telegram-бота.
+	 */
 	constructor(token: string) {
 		super(token);
 		this.startTime = new Date();
@@ -48,36 +62,44 @@ export default class BotClient extends Bot<SessionContext> {
 		this.sceneTimers = new Map();
 	}
 
+	/**
+	 * Инициализирует все компоненты бота.
+	 * Загружает команды, меню, сцены, настраивает middleware.
+	 * @returns {Promise<void>}
+	 */
 	async initialize(): Promise<void> {
 		try {
 			this.use(hydrate());
-			this.use(session({
-				initial: (): SessionData => ({
-					currentScene: null,
-					step: 0,
-					wizardState: {},
-					params: {},
+			this.use(
+				session({
+					initial: (): SessionData => ({
+						currentScene: null,
+						step: 0,
+						wizardState: {},
+						params: {},
+					}),
+					storage: this.sessionStorage,
 				}),
-				storage: this.sessionStorage,
-			}));
+			);
 			this.use((ctx, next) => {
-				ctx.services = {
+				((ctx.services = {
 					sceneHandler: this.sceneHandler,
 					sceneManager: this.sceneManager,
 					commandManager: this.commandManager,
 					menuHandler: this.menuHandler,
-				},
-					ctx.utils = this.utils
+				}),
+					(ctx.utils = this.utils));
 				return next();
 			});
 			this.use(async (ctx: SessionContext, next) => {
 				ctx.wizard = {
 					next: async () => await this.sceneManager.next(ctx),
 					back: async () => await this.sceneManager.back(ctx),
-					selectStep: async (ctx, stepIndex) => await this.sceneManager.selectStep(ctx, stepIndex),
+					selectStep: async (ctx, stepIndex) =>
+						await this.sceneManager.selectStep(ctx, stepIndex),
 					state: ctx.session.wizardState ?? (ctx.session.wizardState = {}),
-					params: ctx.session.params ?? (ctx.session.params = {})
-				}
+					params: ctx.session.params ?? (ctx.session.params = {}),
+				};
 				ctx.scene = {
 					leave: async () => await this.sceneManager.leave(ctx),
 				};
@@ -104,13 +126,16 @@ export default class BotClient extends Bot<SessionContext> {
 						messageId = ctx.callbackQuery.message.message_id;
 					} else {
 						// Проверяем, сохранено ли сообщение в состоянии сцены
-						const state = ctx.session.wizardState as any;
-						const params = ctx.session.params as any;
+						const state = ctx.session.wizardState;
+						const params = ctx.session.params;
 						if (state?.message?.message_id) messageId = state.message.message_id;
 						else if (params?.message?.message_id) messageId = params.message.message_id;
 					}
 
-					const timer = setTimeout(() => this.handleSceneTimeout(chatId, messageId), 60000);
+					const timer = setTimeout(
+						() => this.handleSceneTimeout(chatId, messageId),
+						60000,
+					);
 					this.sceneTimers.set(chatId, timer);
 				}
 			});
@@ -119,34 +144,34 @@ export default class BotClient extends Bot<SessionContext> {
 			await this.menuHandler.loadMenus();
 			await this.sceneHandler.loadScenes();
 
-			this.router.register('create-account', async (ctx, addressId) => {
+			this.router.register("create-account", async (ctx, addressId) => {
 				ctx.wizard.params.addressId = addressId;
-				await this.sceneManager.enter(ctx, 'create-account');
+				await this.sceneManager.enter(ctx, "create-account");
 			});
 
-			this.router.register('delete-account', async (ctx, accountId) => {
+			this.router.register("delete-account", async (ctx, accountId) => {
 				ctx.wizard.params.accountId = accountId;
-				await this.sceneManager.enter(ctx, 'delete-account')
+				await this.sceneManager.enter(ctx, "delete-account");
 			});
 
-			this.router.register('delete-address', async (ctx, addressId) => {
+			this.router.register("delete-address", async (ctx, addressId) => {
 				ctx.wizard.params.addressId = addressId;
-				await this.sceneManager.enter(ctx, 'delete-address')
+				await this.sceneManager.enter(ctx, "delete-address");
 			});
 
-			this.router.register('create-reading', async (ctx, accountId) => {
+			this.router.register("create-reading", async (ctx, accountId) => {
 				ctx.wizard.params.accountId = accountId;
-				await this.sceneManager.enter(ctx, 'create-reading');
+				await this.sceneManager.enter(ctx, "create-reading");
 			});
 
-			this.router.register('delete-reading', async (ctx, readingId) => {
+			this.router.register("delete-reading", async (ctx, readingId) => {
 				ctx.wizard.params.readingId = readingId;
-				await this.sceneManager.enter(ctx, 'delete-reading');
+				await this.sceneManager.enter(ctx, "delete-reading");
 			});
 
-			this.router.register('create-tariff', async (ctx, accountId) => {
+			this.router.register("create-tariff", async (ctx, accountId) => {
 				ctx.wizard.params.accountId = accountId;
-				await this.sceneManager.enter(ctx, 'create-tariff');
+				await this.sceneManager.enter(ctx, "create-tariff");
 			});
 
 			this.router.register("back-to-address", async (ctx, addressId) => {
@@ -188,7 +213,9 @@ export default class BotClient extends Bot<SessionContext> {
 				if (messageId) {
 					try {
 						await this.api.deleteMessage(chatId, messageId);
-					} catch (e) { /* Сообщение уже удалено или ошибка доступа */ }
+					} catch (e) {
+						/* Сообщение уже удалено или ошибка доступа */
+					}
 				}
 
 				// Сбрасываем состояние сцены
@@ -196,7 +223,7 @@ export default class BotClient extends Bot<SessionContext> {
 				session.step = 0;
 				session.wizardState = {};
 				session.params = {};
-				console.log(`Сцена остановлена: ${session.currentScene}`)
+				console.log(`Сцена остановлена: ${session.currentScene}`);
 
 				this.sessionStorage.write(key, session);
 			}
@@ -216,16 +243,15 @@ export default class BotClient extends Bot<SessionContext> {
 			try {
 				const cached = readFileSync("statuses.json", "utf8");
 				this.statuses = JSON.parse(cached);
-			} catch (e) { /* Файла нет или ошибка чтения — не страшно */ }
+			} catch (e) {
+				/* Файла нет или ошибка чтения — не страшно */
+			}
 
 			const statusResponse = await axios(this.SALESDRIVES_STATUS_LIST_URL, {
 				headers: { "X-Api-Key": this.SALESDRIVES_API_KEY },
 			});
 
-			if (
-				statusResponse.data.success &&
-				Array.isArray(statusResponse.data.data)
-			) {
+			if (statusResponse.data.success && Array.isArray(statusResponse.data.data)) {
 				const newStatuses: StatusesMap = {};
 				// Преобразуем данные в удобный формат
 				statusResponse.data.data.forEach((item: StatusData) => {
@@ -238,24 +264,9 @@ export default class BotClient extends Bot<SessionContext> {
 				// Обновляем кэш в памяти и на диске
 				this.statuses = newStatuses;
 				// Сохраняем в файл
-				writeFileSync(
-					"statuses.json",
-					JSON.stringify(this.statuses, null, 2),
-					"utf8",
-				);
+				writeFileSync("statuses.json", JSON.stringify(this.statuses, null, 2), "utf8");
 			}
 
-			// Запрашиваем список заказов
-			const ordersResponse = await axios(this.SALESDRIVES_ORDER_LIST_URL, {
-				headers: { "X-Api-Key": this.SALESDRIVES_API_KEY },
-			});
-
-			if (
-				ordersResponse.data.status === "success" &&
-				Array.isArray(ordersResponse.data.data)
-			) {
-				const firstOrder: OrderItem = ordersResponse.data.data[0];
-			}
 		} catch (err) {
 			console.error(
 				"❌ Ошибка при получении данных SalesDrive:",
@@ -273,10 +284,7 @@ export default class BotClient extends Bot<SessionContext> {
 			console.log("🚀 Бот запущен");
 			await this.start();
 		} catch (err) {
-			console.error(
-				"❌ Ошибка запуска бота:",
-				err instanceof Error ? err.message : err,
-			);
+			console.error("❌ Ошибка запуска бота:", err instanceof Error ? err.message : err);
 			console.error("Полная ошибка:", err);
 		}
 	}

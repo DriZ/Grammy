@@ -11,7 +11,7 @@ export function createCommandHandler(client: BotClient) {
 		}
 
 		// Пропускаем, если пользователь в сцене
-		if ((ctx as any).session?.currentScene) {
+		if (ctx.session?.currentScene) {
 			return next();
 		}
 
@@ -29,8 +29,11 @@ export function createCommandHandler(client: BotClient) {
 			return next();
 		}
 
-		const command = client.commandManager.commands.get(commandName) ||
-			client.commandManager.commands.get(client.commandManager.aliases.get(commandName) || "");
+		const command =
+			client.commandManager.commands.get(commandName) ||
+			client.commandManager.commands.get(
+				client.commandManager.aliases.get(commandName) || "",
+			);
 
 		if (command) {
 			// Проверка прав доступа
@@ -41,16 +44,27 @@ export function createCommandHandler(client: BotClient) {
 			if (command.config.permission && command.config.permission > PermissionLevel.User) {
 				if (command.config.permission === PermissionLevel.Owner && !isOwner) {
 					return void (await ctx.reply(`❌ Эта команда доступна только владельцу бота.`));
-				} else if (command.config.permission === PermissionLevel.Admin && !isOwner && !isAdmin) {
-					return void (await ctx.reply(`❌ Эта команда доступна только администраторам.`));
+				} else if (
+					command.config.permission === PermissionLevel.Admin &&
+					!isOwner &&
+					!isAdmin
+				) {
+					return void (await ctx.reply(
+						`❌ Эта команда доступна только администраторам.`,
+					));
 				}
 			}
 
-			console.log(`[CommandHandler] Executing command "${command.info.name}" for user ${ctx.from?.id}`);
+			console.log(
+				`[CommandHandler] Executing command "${command.info.name}" for user ${ctx.from?.id}`,
+			);
 			try {
 				await command.execute(ctx, args);
 			} catch (error) {
-				console.error(`[CommandHandler] Error executing command "${command.info.name}":`, error);
+				console.error(
+					`[CommandHandler] Error executing command "${command.info.name}":`,
+					error,
+				);
 				await ctx.reply("❌ Произошла ошибка при выполнении команды.");
 			}
 		} else {
