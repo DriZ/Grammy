@@ -4,17 +4,16 @@
 		"./index.ts",
 		"./core",
 		"./structures",
-		"./commands",
-		"./events",
-		"./scenes",
 		"./types",
-		"./menus"
+		"./docs/TYPESCRIPT_GUIDE.md",
+		"./docs/TYPES_DOCUMENTATION.md",
+		"./docs/MIGRATION_SUMMARY.md"
 	],
 	"entryPointStrategy": "expand",
 	"out": "docs/api",
 	"name": "Grammy Bot Documentation",
 	"readme": "./README.md",
-	"exclude": ["node_modules", "dist", "**/*.bak.ts", "*.md"],
+	"exclude": ["node_modules", "dist", "**/*.bak.ts"],
 	"theme": "default",
 	"excludePrivate": true,
 	"excludeProtected": true

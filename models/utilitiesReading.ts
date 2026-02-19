@@ -1,6 +1,6 @@
 import { Schema, model, Document, Types } from "mongoose";
 
-export interface ZoneReading {
+export type ZoneReading = {
 	name: string; // "day", "night", "peak", "half-peak"
 	value: number;
 }

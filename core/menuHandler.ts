@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 /**
  * menuHandler.ts - Обработчик меню/кнопок
  *
@@ -12,6 +13,14 @@ import BotClient from "./Client.js";
 import { HearsContext, InlineKeyboard } from "grammy";
 import config from "../config.js";
 import { PermissionLevel } from "../types/index.js";
+import { Account, Address, Tariff, UtilitiesReading } from "../models/index.js";
+import {
+	makeAccountMenu,
+	makeAddressMenu,
+	makeReadingMenu,
+	makeReadingsMenu,
+	makeTariffMenu,
+} from "../menus/utility-menus.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,11 +35,16 @@ export default class MenuHandler {
 	/**
 	 * Конструктор
 	 * @param client - экземпляр BotClient
-	 * @param sceneHandler - обработчик сцен для вызова сцен из меню
 	 */
 	constructor(client: BotClient) {
 		this.client = client;
 		this.menus = new Map();
+	}
+
+	/**
+	 * Инициализация слушателей событий
+	 */
+	init() {
 
 		// Слушаем кнопку "🤖 Команды" из Reply-меню
 		this.client.hears("🤖 Команды", async (ctx) => {
@@ -49,6 +63,7 @@ export default class MenuHandler {
 
 				// Переопределяем reply для редактирования сообщения и добавления кнопки Назад
 				const originalReply = ctx.reply.bind(ctx);
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				(ctx as any).reply = async (text: string, extra: any = {}) => {
 					const backBtn = { text: "🔙 Назад", callback_data: "commands-list" };
 
@@ -70,6 +85,7 @@ export default class MenuHandler {
 
 				// Выполняем команду. Передаем пустые аргументы.
 				try {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					await command.execute(ctx as any, []);
 				} catch (e) {
 					console.error(`Ошибка выполнения команды ${commandName} из меню:`, e);
@@ -89,10 +105,55 @@ export default class MenuHandler {
 				return this.showMenu(ctx as CallbackContext, menuId);
 			}
 
-			// if (this.menus.has(menuId)) {
-			// 	await ctx.answerCallbackQuery();
-			// 	return this.showMenu(ctx as CallbackContext, menuId);
-			// }
+			// Если меню уже зарегистрировано, показываем его
+			if (this.menus.has(menuId)) {
+				await ctx.answerCallbackQuery();
+				return this.showMenu(ctx as CallbackContext, menuId);
+			}
+
+			// Пытаемся динамически создать меню для утилит
+			const match = menuId.match(/^(readings|address|account|reading|tariff)-([a-fA-F0-9]{24})(?:-(\d+))?$/);
+			if (match) {
+				const [, prefix, id, yearStr] = match;
+				let newMenu: Menu | null = null;
+
+				try {
+					switch (prefix) {
+						case "address":
+							if (await Address.findById(id)) newMenu = makeAddressMenu(id);
+							break;
+						case "account":
+							const account = await Account.findById(id);
+							if (account)
+								newMenu = makeAccountMenu(id, account.address_id.toString());
+							break;
+						case "readings":
+							const year = yearStr ? parseInt(yearStr, 10) : undefined;
+							const acc = await Account.findById(id);
+							if (acc)
+								newMenu = makeReadingsMenu(id, year);
+							break;
+						case "reading":
+							const reading = await UtilitiesReading.findById(id);
+							if (reading)
+								newMenu = makeReadingMenu(id, reading.account_id.toString());
+							break;
+						case "tariff":
+							const tariff = await Tariff.findById(id);
+							if (tariff) newMenu = makeTariffMenu(id, tariff.account_id.toString());
+							break;
+					}
+
+					if (newMenu) {
+						await ctx.answerCallbackQuery();
+						this.registerMenu(menuId, newMenu);
+						return this.showMenu(ctx as CallbackContext, menuId);
+					}
+				} catch (error) {
+					console.error(`❌ Ошибка при динамическом создании меню "${menuId}":`, error);
+				}
+			}
+
 			return next();
 		});
 	}
@@ -158,8 +219,10 @@ export default class MenuHandler {
 							console.log(`🔘 Reply кнопка нажата: "${btn.text}"`);
 							if (ctx.message) await ctx.msg.delete();
 							if (btn.nextMenu) {
+								// eslint-disable-next-line @typescript-eslint/no-explicit-any
 								return this.showMenu(ctx as any, btn.nextMenu);
 							}
+							// eslint-disable-next-line @typescript-eslint/no-explicit-any
 							if (btn.action) btn.action(ctx as any);
 							return;
 						} catch (error) {
@@ -208,7 +271,7 @@ export default class MenuHandler {
 		const menuId = nextMenu || ctx.callbackQuery?.data || "";
 
 		if (menuId === "delete-msg") {
-			await ctx.msg?.delete().catch(() => {});
+			await ctx.msg?.delete().catch(() => { });
 			return;
 		}
 

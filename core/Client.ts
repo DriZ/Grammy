@@ -76,7 +76,6 @@ export default class BotClient extends Bot<SessionContext> {
 						currentScene: null,
 						step: 0,
 						wizardState: {},
-						params: {},
 					}),
 					storage: this.sessionStorage,
 				}),
@@ -93,15 +92,19 @@ export default class BotClient extends Bot<SessionContext> {
 			});
 			this.use(async (ctx: SessionContext, next) => {
 				ctx.wizard = {
-					next: async () => await this.sceneManager.next(ctx),
-					back: async () => await this.sceneManager.back(ctx),
+					next: async () => await this.sceneManager.next(ctx as CallbackContext),
+					back: async () => await this.sceneManager.back(ctx as CallbackContext),
 					selectStep: async (ctx, stepIndex) =>
 						await this.sceneManager.selectStep(ctx, stepIndex),
-					state: ctx.session.wizardState ?? (ctx.session.wizardState = {}),
-					params: ctx.session.params ?? (ctx.session.params = {}),
+					state: ctx.session.wizardState ?? (ctx.session.wizardState = {})
 				};
 				ctx.scene = {
-					leave: async () => await this.sceneManager.leave(ctx),
+					leave: async () => await this.sceneManager.leave(ctx as CallbackContext),
+					backToMenu: async (ctx, text, menuName) => await this.sceneManager.backToMenu(ctx, text, menuName),
+					backToUtilitiesMenu: async (ctx, text) => await this.sceneManager.backToUtilitiesMenu(ctx, text),
+					confirmOrCancel: async (ctx, text) => await this.sceneManager.confirmOrCancel(ctx, text),
+					cancelCreating: async (ctx, menuName) => await this.sceneManager.cancleCreating(ctx, menuName),
+					cancelDeleting: async (ctx, menuName) => await this.sceneManager.cancelDeleting(ctx, menuName)
 				};
 				await next();
 			});
@@ -113,23 +116,25 @@ export default class BotClient extends Bot<SessionContext> {
 					this.sceneTimers.delete(ctx.chat.id);
 				}
 
-				if (ctx.session.currentScene) await this.sceneManager.handle(ctx);
+				if (ctx.session.currentScene) await this.sceneManager.handle(ctx as CallbackContext);
 				else await next();
 
 				// 2. Если после обработки пользователь находится в сцене, запускаем таймер
 				if (ctx.chat?.id && ctx.session.currentScene) {
-					const chatId = ctx.chat.id;
+					let chatId = ctx.chat.id;
 					let messageId: number | undefined;
 
 					// Пытаемся найти ID сообщения интерфейса для удаления
 					if (ctx.callbackQuery?.message?.message_id) {
 						messageId = ctx.callbackQuery.message.message_id;
+						chatId = ctx.callbackQuery.message.chat.id;
+					} else if (ctx.update.message?.message_id) {
+						messageId = ctx.update.message.message_id;
+						chatId = ctx.update.message.chat.id;
 					} else {
 						// Проверяем, сохранено ли сообщение в состоянии сцены
 						const state = ctx.session.wizardState;
-						const params = ctx.session.params;
 						if (state?.message?.message_id) messageId = state.message.message_id;
-						else if (params?.message?.message_id) messageId = params.message.message_id;
 					}
 
 					const timer = setTimeout(
@@ -140,53 +145,57 @@ export default class BotClient extends Bot<SessionContext> {
 				}
 			});
 
+			this.menuHandler.init();
+
 			await this.commandManager.loadCommands();
 			await this.menuHandler.loadMenus();
 			await this.sceneHandler.loadScenes();
 
 			this.router.register("create-account", async (ctx, addressId) => {
-				ctx.wizard.params.addressId = addressId;
+				ctx.wizard.state.addressId = addressId;
 				await this.sceneManager.enter(ctx, "create-account");
 			});
 
 			this.router.register("delete-account", async (ctx, accountId) => {
-				ctx.wizard.params.accountId = accountId;
+				ctx.wizard.state.accountId = accountId;
 				await this.sceneManager.enter(ctx, "delete-account");
 			});
 
 			this.router.register("delete-address", async (ctx, addressId) => {
-				ctx.wizard.params.addressId = addressId;
+				ctx.wizard.state.addressId = addressId;
 				await this.sceneManager.enter(ctx, "delete-address");
 			});
 
 			this.router.register("create-reading", async (ctx, accountId) => {
-				ctx.wizard.params.accountId = accountId;
+				ctx.wizard.state.accountId = accountId;
 				await this.sceneManager.enter(ctx, "create-reading");
 			});
 
 			this.router.register("delete-reading", async (ctx, readingId) => {
-				ctx.wizard.params.readingId = readingId;
+				ctx.wizard.state.readingId = readingId;
 				await this.sceneManager.enter(ctx, "delete-reading");
 			});
 
 			this.router.register("create-tariff", async (ctx, accountId) => {
-				ctx.wizard.params.accountId = accountId;
+				ctx.wizard.state.accountId = accountId;
 				await this.sceneManager.enter(ctx, "create-tariff");
 			});
 
-			this.router.register("back-to-address", async (ctx, addressId) => {
-				await ctx.services.menuHandler.showMenu(ctx, `address-${addressId}`);
+			this.router.register("delete-tariff", async (ctx, tariffId) => {
+				ctx.wizard.state.tariffId = tariffId;
+				await this.sceneManager.enter(ctx, "delete-tariff");
 			});
 
-			this.router.register("back-to-account", async (ctx, accountId) => {
-				await ctx.services.menuHandler.showMenu(ctx, `address-${accountId}`);
+			this.router.register("calculate-bill", async (ctx, accountId) => {
+				ctx.wizard.state.accountId = accountId;
+				await this.sceneManager.enter(ctx, "calculate-bill");
 			});
 
 			this.on("callback_query:data", async (ctx) => {
 				// Этот слушатель срабатывает последним, если MenuHandler не обработал кнопку.
 				// Пытаемся передать управление роутеру.
 				await this.router.handle(ctx as CallbackContext);
-				return ctx.answerCallbackQuery().catch(() => {});
+				return ctx.answerCallbackQuery().catch(() => { });
 			});
 
 			await this.commandManager.registerBotCommands();
@@ -219,11 +228,10 @@ export default class BotClient extends Bot<SessionContext> {
 				}
 
 				// Сбрасываем состояние сцены
+				console.log(`Сцена остановлена по таймауту: ${session.currentScene}`);
 				session.currentScene = null;
 				session.step = 0;
 				session.wizardState = {};
-				session.params = {};
-				console.log(`Сцена остановлена: ${session.currentScene}`);
 
 				this.sessionStorage.write(key, session);
 			}

@@ -12,6 +12,7 @@ export interface ZoneParams {
 }
 
 export interface ITariff extends Document {
+	_id: Types.ObjectId;
 	account_id: Types.ObjectId;
 	type: string;
 	zones: ZoneParams[];
@@ -23,6 +24,8 @@ export interface ITariff extends Document {
 
 const tariffSchema = new Schema<ITariff>(
 	{
+		_id: { type: Schema.Types.ObjectId, auto: true },
+		// ID аккаунта
 		account_id: { type: Schema.Types.ObjectId, ref: "Account", required: true },
 		// Тип тарифа: однотарифный, двухтарифный, трёхтарифный
 		type: { type: Schema.Types.String, enum: TariffType, required: true },

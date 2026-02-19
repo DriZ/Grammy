@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import BotClient from "./Client.js";
-import { SessionContext, WizardScene } from "../types/index.js";
+import { CallbackContext, WizardScene } from "../types/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +23,7 @@ export default class SceneHandler {
 		}
 
 		const module = await import(`file://${scenePath}`);
-		const scene = module.default as WizardScene<SessionContext>;
+		const scene = module.default as WizardScene<CallbackContext>;
 
 		if (!scene?.name || !scene?.steps) {
 			console.warn(`⚠️  └─ Сцена в файле ${scenePath} некорректна. Пропускаю...`);

@@ -1,11 +1,9 @@
 import mongoose from "mongoose";
 import { User, IUser } from "./user.js";
 import { Account, IAccount, MeterType } from "./account.js";
-import { UserAccount, IUserAccount } from "./userAccount.js";
-import { UtilitiesReading, ZoneReading } from "./utilitiesReading.js";
-import { Tariff, TariffType, ZoneParams } from "./tariff.js";
-import { Billing } from "./billing.js";
 import { Address, IAddress } from "./address.js";
+import { UtilitiesReading, IUtilitiesReading, ZoneReading } from "./utilitiesReading.js";
+import { Tariff, TariffType, ZoneParams } from "./tariff.js";
 import { UserAddress, IUserAddress } from "./userAddress.js";
 
 async function initializeDatabase(): Promise<void> {
@@ -35,11 +33,9 @@ export {
 	IUserAddress,
 	Account,
 	IAccount,
-	UserAccount,
-	IUserAccount,
 	UtilitiesReading,
+	IUtilitiesReading,
 	Tariff,
 	TariffType,
 	ZoneParams,
-	Billing,
 };

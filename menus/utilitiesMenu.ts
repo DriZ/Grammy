@@ -1,6 +1,7 @@
 import { InlineKeyboard } from "grammy";
 import { UserAddress } from "../models/index.js";
 import { CallbackContext, Menu, MenuButton } from "../types/index.js";
+import { makeAddressMenu } from "./utility-menus.js";
 
 const utilitiesMenu: Menu = {
 	id: "utilities-menu",
@@ -42,7 +43,7 @@ const utilitiesMenu: Menu = {
 				const callback = `address-${addr._id}`;
 
 				// Регистрируем меню для этого адреса
-				const addrMenu = ctx.utils.makeAddressMenu(addr._id.toString());
+				const addrMenu = makeAddressMenu(addr._id.toString());
 				if (!ctx.services.menuHandler.menus.has(addrMenu.id))
 					ctx.services.menuHandler.registerMenu(addrMenu.id, addrMenu);
 

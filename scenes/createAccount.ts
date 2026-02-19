@@ -1,4 +1,4 @@
-import { CallbackContext, WizardScene } from "../types/index.js";
+import { CallbackContext, Resource, WizardScene } from "../types/index.js";
 import { Account, MeterType } from "../models/index.js";
 import { InlineKeyboard } from "grammy";
 
@@ -11,11 +11,11 @@ const createAccountScene: WizardScene<CallbackContext> = {
 		async (ctx) => {
 			await ctx.callbackQuery?.message?.editText("Выберите тип ресурса:", {
 				reply_markup: new InlineKeyboard()
-					.text("⚡ Электричество", "electricity")
+					.text("⚡ Электричество", Resource.electricity.name)
 					.row()
-					.text("💧 Вода", "water")
+					.text("💧 Вода", Resource.water.name)
 					.row()
-					.text("🔥 Газ", "gas")
+					.text("🔥 Газ", Resource.gas.name)
 					.row()
 					.text("Отмена", "cancel"),
 			});
@@ -25,14 +25,13 @@ const createAccountScene: WizardScene<CallbackContext> = {
 		// Шаг 1: обработка ресурса
 		async (ctx) => {
 			if (ctx.callbackQuery?.data === "cancel") {
-				await ctx.callbackQuery.message?.delete();
+				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Создание счёта отменено.");
 				return ctx.scene.leave();
 			}
 
-			ctx.wizard.state.resource = ctx.update.callback_query?.data;
+			ctx.wizard.state.resource = ctx.update.callback_query?.data as keyof typeof Resource;
 
-			if (ctx.wizard.state.resource === "electricity") {
-				// если электричество → спрашиваем тип счётчика
+			if (ctx.wizard.state.resource === Resource.electricity.name) {
 				await ctx.callbackQuery?.message?.editText("Выберите тип счётчика:", {
 					reply_markup: new InlineKeyboard()
 						.text("Однотарифный", MeterType.SINGLE)
@@ -58,14 +57,14 @@ const createAccountScene: WizardScene<CallbackContext> = {
 		// Шаг 2: выбор типа счётчика (только для electricity)
 		async (ctx) => {
 			if (ctx.callbackQuery?.data === "cancel") {
-				await ctx.callbackQuery.message?.delete();
+				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Создание счёта отменено.");
 				return ctx.scene.leave();
 			}
 
 			ctx.wizard.state.meterType = ctx.update.callback_query?.data;
 
 			await ctx.callbackQuery?.message?.editText(
-				`Ресурс: ${ctx.wizard.state.resource}, счётчик: ${ctx.wizard.state.meterType}\n\nВведите номер счёта:`,
+				`Ресурс: ${Resource[ctx.wizard.state.resource as keyof typeof Resource].emoji} ${ctx.wizard.state.resource}, счётчик: ${ctx.wizard.state.meterType}\n\nВведите номер счёта:`,
 				{ reply_markup: cancelBtn },
 			);
 			ctx.wizard.state.message = ctx.callbackQuery?.message;
@@ -75,37 +74,39 @@ const createAccountScene: WizardScene<CallbackContext> = {
 		// Шаг 3: ввод номера счёта
 		async (ctx) => {
 			if (ctx.update.callback_query?.data === "cancel") {
-				await ctx.update.callback_query.message?.delete();
+				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Создание счёта отменено.");
 				return ctx.scene.leave();
 			}
 
 			if (!ctx.update.message?.text) {
-				await ctx.wizard.state.message.editText("Пожалуйста, введите текст.");
-				return ctx.wizard.back();
+				await ctx.wizard.state.message.editText(
+					`Ресурс: ${Resource[ctx.wizard.state.resource as keyof typeof Resource].emoji} ${ctx.wizard.state.resource}, счётчик: ${ctx.wizard.state.meterType ?? "стандартный"}\n\n
+					Введите номер счёта:`, { 
+						reply_markup: cancelBtn 
+					}
+				);
+				return
 			}
 
 			const accountNumber = ctx.update.message?.text;
-			const resource = ctx.wizard.state.resource;
+			const resource: keyof typeof Resource = ctx.wizard.state.resource;
 			const meterType = ctx.wizard.state.meterType;
-			const addressId = ctx.wizard.params.addressId;
+			const addressId = ctx.wizard.state.addressId;
 
-			await ctx.update.message?.delete();
+			await ctx.update.message?.delete().catch(() => { });
 
 			try {
 				await Account.create({
 					account_number: accountNumber,
 					resource,
 					address_id: addressId,
-					meterType, // сохраняем тип счётчика, если есть
+					meterType
 				});
 
-				await ctx.wizard.state.message?.editText(
-					`✅ Счёт ${accountNumber} (${resource}${meterType ? ", " + meterType : ""}) создан.`,
-					{ reply_markup: new InlineKeyboard().text("⬅️ Назад", "utilities-menu") },
-				);
+				await ctx.scene.backToMenu(ctx, `✅ Счёт ${accountNumber} (${Resource[resource].emoji} ${resource}${meterType ? ", счётчик: " + meterType : ""}) успешно добавлен.`, `address-${addressId}`);
 			} catch (error) {
 				console.error(error);
-				await ctx.wizard.state.message?.editText("❌ Ошибка при создании счёта.");
+				await ctx.scene.backToMenu(ctx, "❌ Ошибка при создании счёта.", `address-${addressId}`);
 			}
 			return ctx.scene.leave();
 		},

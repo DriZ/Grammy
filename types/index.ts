@@ -84,8 +84,8 @@ export interface CommandOptions {
 export interface SessionData {
 	currentScene?: string | null;
 	step?: number;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	wizardState?: Record<string, any>;
-	params?: Record<string, any>;
 }
 
 /**
@@ -110,11 +110,16 @@ export type SessionContext = BaseContext &
 			next: () => Promise<void>;
 			back: () => Promise<void>;
 			selectStep: (ctx: CallbackContext, stepIndex: number) => Promise<void>;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			state: Record<string, any>;
-			params: Record<string, any>;
 		};
 		scene: {
 			leave: () => Promise<void>;
+			backToMenu: (ctx: CallbackContext, text: string, menuName: string) => Promise<void>;
+			backToUtilitiesMenu: (ctx: CallbackContext, text: string) => Promise<void>;
+			confirmOrCancel: (ctx: CallbackContext, text: string) => Promise<void>;
+			cancelCreating: (ctx: CallbackContext, menuName?: string) => Promise<void>;
+			cancelDeleting: (ctx: CallbackContext, menuName?: string) => Promise<void>;
 		};
 	};
 export type CallbackContext = CallbackQueryContext<SessionContext> & SessionContext;
@@ -156,6 +161,24 @@ export interface Menu {
 	inline: boolean;
 	action?: (ctx: CallbackContext) => void;
 }
+
+/**
+ * Возвращает имя и эмодзи типа ресурса
+ */
+export const Resource = {
+	electricity: {
+		name: "electricity",
+		emoji: "⚡️",
+	},
+	water: {
+		name: "water",
+		emoji: "💧",
+	},
+	gas: {
+		name: "gas",
+		emoji: "🔥",
+	},
+} as const;
 
 // ============================================================
 // 👤 Типы пользователя и аккаунта
