@@ -10,7 +10,7 @@
 		"./docs/MIGRATION_SUMMARY.md"
 	],
 	"entryPointStrategy": "expand",
-	"out": "docs/api",
+	"out": "docs",
 	"name": "Grammy Bot Documentation",
 	"readme": "./README.md",
 	"exclude": ["node_modules", "dist", "**/*.bak.ts"],
