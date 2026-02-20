@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "⬇️  Pulling changes from GitHub..."
-git pull origin main
+git pull origin master
 
 echo "📦 Installing dependencies..."
 npm install
