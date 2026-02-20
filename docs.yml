@@ -1,0 +1,49 @@
+name: Deploy Docs to GitHub Pages
+
+on:
+  # Запускаем воркфлоу при каждом пуше в ветку master
+  push:
+    branches:
+      - master
+  # Позволяет запускать воркфлоу вручную со страницы Actions
+  workflow_dispatch:
+
+# Устанавливаем права для GITHUB_TOKEN, чтобы разрешить деплой на GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Разрешаем только один одновременный деплой, отменяя предыдущие запуски
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Используем версию Node.js, как в локальной среде
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm install
+      - name: Build documentation
+        run: npm run docs # Эта команда запускает typedoc из package.json
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Загружаем содержимое папки docs, куда typedoc генерирует сайт
+          path: './docs'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

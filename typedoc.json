@@ -5,9 +5,6 @@
 		"./core",
 		"./structures",
 		"./types",
-		"./docs/TYPESCRIPT_GUIDE.md",
-		"./docs/TYPES_DOCUMENTATION.md",
-		"./docs/MIGRATION_SUMMARY.md"
 	],
 	"entryPointStrategy": "expand",
 	"out": "docs",
