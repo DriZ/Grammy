@@ -5,7 +5,6 @@
 	"main": "dist/index.js",
 	"type": "module",
 	"scripts": {
-		"prepare": "husky",
 		"build": "tsc",
 		"docs": "typedoc",
 		"start": "npm run build && node -r dotenv/config dist/index.js",
