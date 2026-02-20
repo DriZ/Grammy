@@ -36,7 +36,7 @@ export default class extends Command {
 		const user = await User.findOne({ telegram_id: ctx.from?.id });
 		if (!user) User.create({ telegram_id: ctx.from?.id, name: ctx.from?.first_name });
 
-		await ctx.reply(mainMenu.title, { reply_markup: keyboard.resized() });
+		await ctx.reply(mainMenu.title, { reply_markup: keyboard.resized().persistent(true) });
 		return;
 	}
 }

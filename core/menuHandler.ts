@@ -143,9 +143,9 @@ export default class MenuHandler {
 							if (tariff) newMenu = makeTariffMenu(id, tariff.account_id.toString());
 							break;
 					}
+					await ctx.answerCallbackQuery();
 
 					if (newMenu) {
-						await ctx.answerCallbackQuery();
 						this.registerMenu(menuId, newMenu);
 						return this.showMenu(ctx as CallbackContext, menuId);
 					}
