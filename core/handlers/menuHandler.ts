@@ -1,0 +1,232 @@
+/* eslint-disable no-case-declarations */
+/**
+ * menuHandler.ts - Обработчик меню/кнопок
+ * 
+ * Управляет обработкой событий и отображением интерактивных меню
+ */
+
+import type { CallbackContext, Menu, MenuButton } from "../../types/index.js";
+import BotClient from "../Client.js";
+import { InlineKeyboard } from "grammy";
+import { Account, Address, Tariff, UtilitiesReading } from "../../models/index.js";
+import {
+	makeAccountMenu,
+	makeAddressMenu,
+	makeReadingMenu,
+	makeReadingsMenu,
+	makeTariffMenu,
+} from "../../menus/utility-menus.js";
+import MenuManager from "../managers/MenuManager.js";
+
+/**
+ * Обработчик меню
+ */
+export default class MenuHandler {
+	private client: BotClient;
+	private menuManager: MenuManager;
+
+	/**
+	 * Конструктор
+	 * @param client - экземпляр BotClient
+	 */
+	constructor(client: BotClient, menuManager: MenuManager) {
+		this.client = client;
+		this.menuManager = menuManager;
+	}
+
+	/**
+	 * Инициализация слушателей событий
+	 */
+	init() {
+		// Централизованный обработчик для всех текстовых сообщений, чтобы ловить нажатия Reply-кнопок
+		this.client.on("message:text", async (ctx, next) => {
+			const text = ctx.message.text;
+			let handled = false;
+
+			// 1. Проверяем специальные кнопки, которые не являются частью стандартных меню (например, "Команды")
+			if (text === ctx.t("main-menu-button-commands")) {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				await this.menuManager.showMenu(ctx as any, "commands-list");
+				handled = true;
+			}
+
+			// 2. Если не обработано, ищем совпадение среди кнопок всех не-inline меню
+			if (!handled) {
+				for (const menu of this.menuManager.menus.values()) {
+					if (menu.inline) continue; // Пропускаем inline-меню
+
+					for (const btn of menu.buttons) {
+						const buttonText = ctx.resolveText(btn.text);
+						if (text === buttonText) {
+							try {
+								console.log(`🔘 Reply кнопка нажата: "${buttonText}"`);
+								if (ctx.message) await ctx.msg.delete().catch(() => { });
+								if (btn.nextMenu) {
+									// eslint-disable-next-line @typescript-eslint/no-explicit-any
+									await this.menuManager.showMenu(ctx as any, btn.nextMenu);
+								} else if (btn.action) {
+									// eslint-disable-next-line @typescript-eslint/no-explicit-any
+									await btn.action(ctx as any);
+								}
+							} catch (error) {
+								console.error(`❌ Ошибка при обработке reply кнопки "${buttonText}":`, error);
+							}
+							handled = true;
+							break; // Кнопка найдена, выходим из внутреннего цикла
+						}
+					}
+					if (handled) break; // Меню обработано, выходим из внешнего цикла
+				}
+			}
+
+			// 3. Если ни одна кнопка не подошла, передаем управление дальше (например, командам)
+			if (!handled) {
+				await next();
+			}
+		});
+
+		// Регистрируем глобальный обработчик для динамических кнопок команд
+		this.client.callbackQuery(/^cmd:(.+)$/, async (ctx) => {
+			const match = ctx.match as RegExpMatchArray;
+			console.log(`Словил кнопку команды: ${match[1]}`);
+			const commandName = match[1];
+			const command = this.client.commandManager.commands.get(commandName);
+
+			if (command) {
+				await ctx.answerCallbackQuery();
+
+				// Переопределяем reply для редактирования сообщения и добавления кнопки Назад
+				const originalReply = ctx.reply.bind(ctx);
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				(ctx as any).reply = async (text: string, extra: any = {}) => {
+					const backBtn = { text: "🔙 Назад", callback_data: "commands-list" };
+
+					if (!extra.reply_markup) {
+						extra.reply_markup = new InlineKeyboard().row(backBtn);
+					} else if (extra.reply_markup instanceof InlineKeyboard) {
+						extra.reply_markup.row().text(backBtn.text, backBtn.callback_data);
+					} else if (extra.reply_markup.inline_keyboard) {
+						extra.reply_markup.inline_keyboard.push([backBtn]);
+					}
+
+					try {
+						return await ctx.editMessageText(text, extra);
+					} catch (e) {
+						// Если редактирование невозможно (например, контент не изменился), отправляем новое
+						return await originalReply(text, extra);
+					}
+				};
+
+				// Выполняем команду. Передаем пустые аргументы.
+				try {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					await command.execute(ctx as any, []);
+				} catch (e) {
+					console.error(`Ошибка выполнения команды ${commandName} из меню:`, e);
+					await originalReply("❌ Ошибка при выполнении команды.");
+				}
+			} else {
+				await ctx.answerCallbackQuery("⚠️ Команда не найдена или отключена.");
+			}
+		});
+
+		// Обработчик кнопки "Назад"
+		this.client.callbackQuery("menu-back", async (ctx) => {
+			await ctx.answerCallbackQuery();
+			return this.menuManager.goBack(ctx as CallbackContext);
+		});
+
+		// Регистрируем глобальный обработчик для навигации по меню
+		this.client.on("callback_query:data", async (ctx, next) => {
+			const menuId = ctx.callbackQuery.data;
+
+			if (menuId === "commands-list" || menuId === "delete-msg") {
+				await ctx.answerCallbackQuery();
+				return this.menuManager.showMenu(ctx as CallbackContext, menuId);
+			}
+
+			// Если меню уже зарегистрировано, показываем его
+			if (this.menuManager.menus.has(menuId)) {
+				await ctx.answerCallbackQuery();
+				return this.menuManager.showMenu(ctx as CallbackContext, menuId);
+			}
+
+			// Пытаемся динамически создать меню для утилит
+			const match = menuId.match(/^(readings|address|account|reading|tariff)-([a-fA-F0-9]{24})(?:-(\d+))?$/);
+			if (match) {
+				const [, prefix, id, yearStr] = match;
+				let newMenu: Menu | null = null;
+
+				try {
+					switch (prefix) {
+						case "address":
+							if (await Address.findById(id)) newMenu = makeAddressMenu(id);
+							break;
+						case "account":
+							const account = await Account.findById(id);
+							if (account)
+								newMenu = makeAccountMenu(id, account.address_id.toString());
+							break;
+						case "readings":
+							const year = yearStr ? parseInt(yearStr, 10) : undefined;
+							const acc = await Account.findById(id);
+							if (acc)
+								newMenu = makeReadingsMenu(id, year);
+							break;
+						case "reading":
+							const reading = await UtilitiesReading.findById(id);
+							if (reading)
+								newMenu = makeReadingMenu(id, reading.account_id.toString());
+							break;
+						case "tariff":
+							const tariff = await Tariff.findById(id);
+							if (tariff) newMenu = makeTariffMenu(id, tariff.account_id.toString());
+							break;
+					}
+					await ctx.answerCallbackQuery();
+
+					if (newMenu) {
+						this.menuManager.registerMenu(menuId, newMenu);
+						return this.menuManager.showMenu(ctx as CallbackContext, menuId);
+					}
+				} catch (error) {
+					console.error(`❌ Ошибка при динамическом создании меню "${menuId}":`, error);
+				}
+			}
+
+			return next();
+		});
+	}
+
+	registerMenuHandlers(menu: Menu) {
+		if (menu.buttons && Array.isArray(menu.buttons)) {
+			menu.buttons.forEach((btn: MenuButton) => {
+				if (menu.inline) {
+					// Inline кнопки
+					this.client.callbackQuery(btn.callback, async (ctx) => {
+						try {
+							await ctx.answerCallbackQuery();
+							const buttonText = ctx.resolveText(btn.text);
+							console.log(`🔘 Нажата кнопка: "${buttonText}"`);
+							// 1. Если callback совпадает с именем сцены — запускаем сцену
+							const scene = this.client.sceneManager.getScene(btn.callback);
+							if (scene) {
+								return this.client.sceneManager.enter(ctx, btn.callback);
+							}
+							// 2. Если указан nextMenu — показываем меню
+							if (btn.nextMenu) {
+								return this.menuManager.showMenu(ctx, btn.nextMenu);
+							}
+							// 3. Если есть кастомное действие — выполняем его
+							if (btn.action) {
+								return btn.action(ctx);
+							}
+						} catch (error) {
+							console.error(`❌ Ошибка при обработке кнопки:`, error);
+						}
+					});
+				} // Обработка Reply-кнопок теперь вынесена в центральный обработчик в методе init()
+			});
+		}
+	}
+}

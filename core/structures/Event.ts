@@ -2,8 +2,8 @@
  * Event.ts - Базовый класс для событий
  */
 
-import { CallbackContext } from "../types/index.js";
-import BotClient from "../core/Client.js";
+import { CallbackContext } from "../../types/index.js";
+import BotClient from "../Client.js";
 import { FilterQuery } from "grammy";
 
 /**

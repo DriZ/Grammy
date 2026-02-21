@@ -1,7 +1,7 @@
-import { SessionContext, PermissionLevel } from "../types/index.js";
-import BotClient from "../core/Client.js";
+import { SessionContext, PermissionLevel } from "../../types/index.js";
+import BotClient from "../Client.js";
 import { NextFunction } from "grammy";
-import config from "../config.js";
+import config from "../../config.js";
 
 export function createCommandHandler(client: BotClient) {
 	return async (ctx: SessionContext, next: NextFunction): Promise<void> => {

@@ -1,10 +1,11 @@
 import { CallbackQueryContext, Context, SessionFlavor } from "grammy";
 import { HydrateFlavor } from "@grammyjs/hydrate";
-import MenuHandler from "../core/menuHandler";
-import SceneHandler from "../core/sceneHandler";
-import { SceneManager } from "../core/SceneManager.js";
-import * as utils from "../structures/util.js";
-import CommandManager from "../core/CommandManager.js";
+import MenuManager from "../core/managers/MenuManager.js";
+import SceneHandler from "../core/handlers/sceneHandler.js";
+import { SceneManager } from "../core/managers/SceneManager.js";
+import * as utils from "../core/util.js";
+import CommandManager from "../core/managers/CommandManager.js";
+import { I18nFlavor } from "@grammyjs/i18n"
 
 // ============================================================
 // 🤖 Типы конфигурации и уровни доступа
@@ -72,7 +73,7 @@ export interface CommandOptions {
 	aliases?: string[];
 	category?: string;
 	usage?: string;
-	permission: PermissionLevel;
+	permission: Readonly<PermissionLevel>;
 	location?: string | null;
 	enabled?: boolean;
 	showInMenu?: boolean;
@@ -86,13 +87,15 @@ export interface SessionData {
 	step?: number;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	wizardState?: Record<string, any>;
+	menuStack: string[];
+	currentMenuId?: string;
 }
 
 /**
  * Сервисы, которые будут переданы в контекст для доступа к ним
  */
 export interface Services {
-	menuHandler: MenuHandler;
+	menuManager: MenuManager;
 	sceneHandler: SceneHandler;
 	sceneManager: SceneManager;
 	commandManager: CommandManager;
@@ -103,7 +106,9 @@ export interface ServicesFlavor {
 	utils: typeof utils;
 }
 
-export type BaseContext = HydrateFlavor<Context> & ServicesFlavor;
+export type BaseContext = HydrateFlavor<Context> & ServicesFlavor & I18nFlavor & {
+	resolveText: (text: string | ((ctx: any) => string)) => string;
+};
 export type SessionContext = BaseContext &
 	SessionFlavor<SessionData> & {
 		wizard: {
@@ -144,7 +149,7 @@ export interface WizardScene<C> {
  * Кнопка в меню
  */
 export interface MenuButton {
-	text: string;
+	text: string | ((ctx: CallbackContext) => string);
 	nextMenu?: string;
 	callback: string; // для inline кнопок
 	action?: (ctx: CallbackContext) => void;
@@ -155,7 +160,7 @@ export interface MenuButton {
  */
 export interface Menu {
 	id: string;
-	title: string;
+	title: string | ((ctx: CallbackContext) => string);
 	buttons: MenuButton[];
 	callback?: string;
 	inline: boolean;

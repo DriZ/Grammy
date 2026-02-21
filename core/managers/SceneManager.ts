@@ -1,5 +1,5 @@
 import { InlineKeyboard } from "grammy";
-import { CallbackContext, WizardScene } from "../types/index.js";
+import { CallbackContext, WizardScene } from "../../types/index.js";
 
 export class SceneManager {
 	private scenes = new Map<string, WizardScene<CallbackContext>>();

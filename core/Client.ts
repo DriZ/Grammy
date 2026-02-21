@@ -1,4 +1,5 @@
 import { Bot, session, MemorySessionStorage } from "grammy";
+import { I18n } from "@grammyjs/i18n";
 import type {
 	StatusesMap,
 	StatusData,
@@ -6,17 +7,19 @@ import type {
 	SessionContext,
 	CallbackContext,
 } from "../types/index.js";
-import CommandManager from "./CommandManager.js";
-import { createCommandHandler } from "./commandHandler.js";
-import EventHandler from "./eventHandler.js";
-import MenuHandler from "./menuHandler.js";
-import * as utils from "../structures/util.js";
+import CommandManager from "./managers/CommandManager.js";
+import { createCommandHandler } from "./handlers/commandHandler.js";
+import EventHandler from "./handlers/eventHandler.js";
+import MenuManager from "./managers/MenuManager.js";
+import MenuHandler from "./handlers/menuHandler.js";
+import * as utils from "./util.js";
 import axios from "axios";
 import { writeFileSync, readFileSync } from "fs";
 import { hydrate } from "@grammyjs/hydrate";
-import { SceneManager } from "./SceneManager.js";
-import SceneHandler from "./sceneHandler.js";
+import { SceneManager } from "./managers/SceneManager.js";
+import SceneHandler from "./handlers/sceneHandler.js";
 import { ActionRouter } from "./actionRouter.js";
+import path from "path";
 /**
  * @class BotClient
  * @extends Bot
@@ -27,6 +30,7 @@ export default class BotClient extends Bot<SessionContext> {
 	// Типизированные свойства класса
 	public commandManager: CommandManager;
 	public eventHandler: EventHandler;
+	public menuManager: MenuManager;
 	public menuHandler: MenuHandler;
 	public sceneHandler: SceneHandler;
 	public sceneManager: SceneManager;
@@ -36,6 +40,7 @@ export default class BotClient extends Bot<SessionContext> {
 	public startTime: Date;
 	public sessionStorage: MemorySessionStorage<SessionData>;
 	public sceneTimers: Map<number, ReturnType<typeof setTimeout>>;
+	public i18n: I18n<SessionContext>;
 
 	// API ключ для SalesDrive
 	private readonly SALESDRIVES_API_KEY =
@@ -56,10 +61,15 @@ export default class BotClient extends Bot<SessionContext> {
 		this.sceneHandler = new SceneHandler(this);
 		this.commandManager = new CommandManager(this);
 		this.eventHandler = new EventHandler(this);
-		this.menuHandler = new MenuHandler(this);
+		this.menuManager = new MenuManager(this);
+		this.menuHandler = new MenuHandler(this, this.menuManager);
 		this.router = new ActionRouter(this);
 		this.sessionStorage = new MemorySessionStorage();
 		this.sceneTimers = new Map();
+		this.i18n = new I18n<SessionContext>({
+			defaultLocale: "ru",
+			directory: path.resolve(process.cwd(), "locales"),
+		});
 	}
 
 	/**
@@ -70,22 +80,28 @@ export default class BotClient extends Bot<SessionContext> {
 	async initialize(): Promise<void> {
 		try {
 			this.use(hydrate());
+			this.use(this.i18n);
 			this.use(
 				session({
 					initial: (): SessionData => ({
 						currentScene: null,
 						step: 0,
 						wizardState: {},
+						menuStack: [],
+						currentMenuId: "main-menu",
 					}),
 					storage: this.sessionStorage,
 				}),
 			);
 			this.use((ctx, next) => {
+				ctx.resolveText = (text) => {
+					return typeof text === "function" ? text(ctx as CallbackContext | SessionContext) : text;
+				};
 				((ctx.services = {
 					sceneHandler: this.sceneHandler,
 					sceneManager: this.sceneManager,
 					commandManager: this.commandManager,
-					menuHandler: this.menuHandler,
+					menuManager: this.menuManager,
 				}),
 					(ctx.utils = this.utils));
 				return next();
@@ -148,8 +164,9 @@ export default class BotClient extends Bot<SessionContext> {
 			this.menuHandler.init();
 
 			await this.commandManager.loadCommands();
-			await this.menuHandler.loadMenus();
 			await this.sceneHandler.loadScenes();
+			const loadedMenus = await this.menuManager.loadMenus();
+			loadedMenus.forEach((menu) => this.menuHandler.registerMenuHandlers(menu));
 
 			this.router.register("create-account", async (ctx, addressId) => {
 				ctx.wizard.state.addressId = addressId;

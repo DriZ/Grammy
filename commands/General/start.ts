@@ -1,6 +1,6 @@
 import { Keyboard } from "grammy";
 import BotClient from "../../core/Client.js";
-import Command from "../../structures/Command.js";
+import Command from "../../core/structures/Command.js";
 import { CallbackContext, PermissionLevel } from "../../types/index.js";
 import { User } from "../../models/index.js";
 
@@ -24,19 +24,22 @@ export default class extends Command {
 
 	async execute(ctx: CallbackContext): Promise<void> {
 		await ctx.msg?.delete();
-		const mainMenu = this.client.menuHandler.menus.get("main-menu");
+		const mainMenu = this.client.menuManager.menus.get("main-menu");
 		if (!mainMenu) {
-			await ctx.reply("❌ Главное меню не найдено.");
+			await ctx.reply(ctx.t("main-menu-not-found"));
 			return;
 		}
+
 		const keyboard = new Keyboard();
-		mainMenu.buttons.forEach((b) => keyboard.text(b.text).row());
-		keyboard.text("🤖 Команды").row();
+		mainMenu.buttons.forEach((b) => {
+			keyboard.text(ctx.resolveText(b.text)).row();
+		});
+		keyboard.text(ctx.t("main-menu-button-commands")).row();
 
 		const user = await User.findOne({ telegram_id: ctx.from?.id });
 		if (!user) User.create({ telegram_id: ctx.from?.id, name: ctx.from?.first_name });
 
-		await ctx.reply(mainMenu.title, { reply_markup: keyboard.resized().persistent(true) });
+		await ctx.reply(ctx.resolveText(mainMenu.title), { reply_markup: keyboard.resized().persistent(true) });
 		return;
 	}
 }

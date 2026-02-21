@@ -7,10 +7,9 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { CallbackContext } from "../types/index.js";
+import { CallbackContext } from "../../types/index.js";
 import Event from "../structures/Event.js";
-import BotClient from "./Client.js";
-import { FilterQuery } from "grammy";
+import BotClient from "../Client.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,6 +70,7 @@ export default class EventHandler {
 
 				// Регистрируем событие в Telegraf
 				const registerHandler = (handler: (ctx: CallbackContext) => Promise<void>) => {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					this.client.on(event.name, handler as any);
 				};
 

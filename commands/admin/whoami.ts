@@ -1,4 +1,4 @@
-import Command from "../../structures/Command.js";
+import Command from "../../core/structures/Command.js";
 import { PermissionLevel, type BaseContext } from "../../types/index.js";
 import type BotClient from "../../core/Client.js";
 

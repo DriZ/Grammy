@@ -1,9 +1,14 @@
 {
-	"name": "telegraf",
-	"version": "1.0.0",
-	"description": "",
+	"name": "grammy",
+	"version": "1.0.5",
+	"description": "Телеграм-бот для сохранения показаний коммунальных услуг.",
 	"main": "dist/index.js",
 	"type": "module",
+	"homepage": "https://grammy.driz.pp.ua/",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/DriZ/Grammy.git"
+	},
 	"scripts": {
 		"build": "tsc",
 		"docs": "typedoc",
@@ -19,6 +24,7 @@
 	"dependencies": {
 		"@azure/msal-node": "^5.0.2",
 		"@grammyjs/hydrate": "^1.6.0",
+		"@grammyjs/i18n": "^1.1.2",
 		"axios": "^1.13.4",
 		"dotenv": "^17.2.3",
 		"glob": "^13.0.5",

@@ -27,10 +27,14 @@ const utilitiesMenu: Menu = {
 	],
 	action: async (ctx) => {
 		const telegramId = ctx.from?.id;
-		if (!telegramId)
-			return ctx.callbackQuery.message?.editText(utilitiesMenu.title, {
+		if (!telegramId) return ctx.callbackQuery.message?.editText(
+			typeof utilitiesMenu.title === "function" 
+				? utilitiesMenu.title(ctx) 
+				: utilitiesMenu.title, 
+			{
 				reply_markup: new InlineKeyboard().text("❌ Закрыть", "cancel"),
-			});
+			}
+		);
 
 		const userAddresses = await UserAddress.find({ telegram_id: telegramId }).populate(
 			"address_id",
@@ -39,29 +43,29 @@ const utilitiesMenu: Menu = {
 
 		if (userAddresses.length > 0) {
 			userAddresses.forEach((ua) => {
-				const addr = ua.address_id as any;
+				const addr = ua.address_id;
 				const callback = `address-${addr._id}`;
 
 				// Регистрируем меню для этого адреса
 				const addrMenu = makeAddressMenu(addr._id.toString());
-				if (!ctx.services.menuHandler.menus.has(addrMenu.id))
-					ctx.services.menuHandler.registerMenu(addrMenu.id, addrMenu);
+				if (!ctx.services.menuManager.menus.has(addrMenu.id))
+					ctx.services.menuManager.registerMenu(addrMenu.id, addrMenu);
 
-				keyboard.text(`🏠 ${addr.name}`, callback).row();
+				keyboard.text(`🏠 ${(addr as any).name}`, callback).row();
 			});
 		}
 
 		// стандартные кнопки
 		utilitiesMenu.buttons.forEach((btn: MenuButton) => {
-			keyboard.text(btn.text, btn.callback).row();
+			keyboard.text(typeof btn.text === "function" ? btn.text(ctx) : btn.text, btn.callback).row();
 		});
 
 		if (ctx.callbackQuery) {
-			await ctx.callbackQuery.message?.editText(utilitiesMenu.title, {
+			await ctx.callbackQuery.message?.editText(typeof utilitiesMenu.title === "function" ? utilitiesMenu.title(ctx) : utilitiesMenu.title, {
 				reply_markup: keyboard,
 			});
 		} else {
-			await ctx.reply(utilitiesMenu.title, { reply_markup: keyboard });
+			await ctx.reply(typeof utilitiesMenu.title === "function" ? utilitiesMenu.title(ctx) : utilitiesMenu.title, { reply_markup: keyboard });
 		}
 	},
 };

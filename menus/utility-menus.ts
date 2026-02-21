@@ -43,7 +43,7 @@ export function makeAddressMenu(addressId: string): Menu {
 				accounts.forEach((acc) => {
 					const emoji = Resource[acc.resource].emoji;
 
-					ctx.services.menuHandler.registerMenu(
+					ctx.services.menuManager.registerMenu(
 						`account-${acc._id.toString()}`,
 						makeAccountMenu(acc._id.toString(), addressId),
 					);
@@ -56,7 +56,7 @@ export function makeAddressMenu(addressId: string): Menu {
 			keyboard.text("➕ Добавить счёт", `create-account-${addressId}`).row();
 			if (accounts.length === 0)
 				keyboard.text("🗑️ Удалить адрес", `delete-address-${addressId}`).row();
-			keyboard.text("⬅️ Назад", "utilities-menu");
+			keyboard.text("⬅️ Назад", "menu-back");
 
 			const title = `📋 Счета по адресу ${address.name}:`;
 			if (ctx.callbackQuery) await ctx.callbackQuery.message?.editText(title, { reply_markup: keyboard });
@@ -115,13 +115,13 @@ export function makeAccountMenu(accountId: string, addressId: string): Menu {
 				.row()
 				.text("🗑️ Удалить счёт", `delete-account-${accountId}`).danger()
 				.row()
-				.text("⬅️ Назад", `address-${addressId}`);
+				.text("⬅️ Назад", `menu-back`);
 
 			const account = await Account.findById(accountId);
 			if (!account) throw new Error(`Счёт с id ${accountId} не найден`);
 
-			ctx.services.menuHandler.registerMenu(`readings-${accountId}`, makeReadingsMenu(accountId));
-			ctx.services.menuHandler.registerMenu(`tariffs-${accountId}`, makeTariffsMenu(accountId));
+			ctx.services.menuManager.registerMenu(`readings-${accountId}`, makeReadingsMenu(accountId));
+			ctx.services.menuManager.registerMenu(`tariffs-${accountId}`, makeTariffsMenu(accountId));
 
 			const title = `${Resource[account.resource].emoji ?? "⚡️"} Меню счёта №${account.account_number}`;
 			if (ctx.callbackQuery) await ctx.callbackQuery.message?.editText(title, { reply_markup: keyboard });
@@ -202,7 +202,7 @@ export function makeReadingsMenu(accountId: string, year?: number): Menu {
 
 			if (readings.length > 0) {
 				readings.forEach((r) => {
-					ctx.services.menuHandler.registerMenu(
+					ctx.services.menuManager.registerMenu(
 						`reading-${r._id.toString()}`,
 						makeReadingMenu(r._id.toString(), accountId),
 					);
@@ -226,7 +226,7 @@ export function makeReadingsMenu(accountId: string, year?: number): Menu {
 				.row();
 
 			keyboard.text("➕ Добавить показания", `create-reading-${accountId}`).row();
-			keyboard.text("⬅️ Назад", `account-${accountId}`);
+			keyboard.text("⬅️ Назад", `menu-back`);
 
 			const account = await Account.findById(accountId);
 			if (!account) {
@@ -256,7 +256,7 @@ export function makeReadingMenu(readingId: string, accountId: string): Menu {
 				action: async (ctx) => {
 					await UtilitiesReading.findByIdAndDelete(readingId);
 					await ctx.reply("✅ Показание удалено");
-					await ctx.services.menuHandler.showMenu(ctx, `readings-${accountId}`);
+					await ctx.services.menuManager.showMenu(ctx, `readings-${accountId}`);
 				},
 			},
 			{
@@ -279,7 +279,7 @@ export function makeReadingMenu(readingId: string, accountId: string): Menu {
 			const keyboard = new InlineKeyboard()
 				.text("🗑️ Удалить показание", `delete-reading-${readingId}`).danger()
 				.row()
-				.text("⬅️ Назад", `readings-${accountId}`);
+				.text("⬅️ Назад", `menu-back`);
 
 			const title = `📊 Показание за ${reading.month}.${reading.year}:\n${zonesStr}`;
 
@@ -317,7 +317,7 @@ export function makeTariffsMenu(accountId: string): Menu {
 
 			if (tariffs.length > 0) {
 				tariffs.forEach((t) => {
-					ctx.services.menuHandler.registerMenu(
+					ctx.services.menuManager.registerMenu(
 						`tariff-${t._id.toString()}`,
 						makeTariffMenu(t._id.toString(), accountId),
 					);
@@ -331,7 +331,7 @@ export function makeTariffsMenu(accountId: string): Menu {
 			}
 
 			keyboard.text("➕ Добавить тариф", `create-tariff-${accountId}`).row();
-			keyboard.text("⬅️ Назад", `account-${accountId}`);
+			keyboard.text("⬅️ Назад", `menu-back`);
 
 			if (ctx.callbackQuery) await ctx.callbackQuery.message?.editText("💰 Тарифы:", { reply_markup: keyboard });
 			else await ctx.reply("💰 Тарифы:", { reply_markup: keyboard });
@@ -351,7 +351,7 @@ export function makeTariffMenu(tariffId: string, accountId: string): Menu {
 				action: async (ctx) => {
 					await Tariff.findByIdAndDelete(tariffId);
 					await ctx.reply("✅ Тариф удалён");
-					await ctx.services.menuHandler.showMenu(ctx, `tariffs-${accountId}`);
+					await ctx.services.menuManager.showMenu(ctx, `tariffs-${accountId}`);
 				},
 			},
 			{
@@ -372,7 +372,7 @@ export function makeTariffMenu(tariffId: string, accountId: string): Menu {
 			const keyboard = new InlineKeyboard()
 				.text("🗑️ Удалить тариф", `delete-tariff-${tariffId}`).danger()
 				.row()
-				.text("⬅️ Назад", `tariffs-${accountId}`);
+				.text("⬅️ Назад", `menu-back`);
 
 
 

@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /**
  * Command.ts - Базовый класс для команд
  *
@@ -8,9 +9,14 @@
  * 4. Типизированные свойства
  */
 
-import { PermissionLevel } from "../types/index.js";
-import type { CommandInfo, CommandConfig, CommandOptions, BaseContext } from "../types/index.js";
-import BotClient from "../core/Client.js";
+import { 
+	type CommandInfo, 
+	type CommandConfig, 
+	type CommandOptions, 
+	type BaseContext, 
+	PermissionLevel 
+} from "../../types/index.js";
+import BotClient from "../Client.js";
 
 /**
  * @abstract
@@ -32,7 +38,7 @@ import BotClient from "../core/Client.js";
  */
 export default abstract class Command {
 	// Типизированные свойства
-	protected client: BotClient;
+	protected readonly client: BotClient;
 	public info: CommandInfo;
 	public config: CommandConfig;
 	/**

@@ -4,7 +4,7 @@
  * Требует прав администратора (permission: 1)
  */
 
-import Command from "../../structures/Command.js";
+import Command from "../../core/structures/Command.js";
 import type BotClient from "../../core/Client.js";
 import { BaseContext, PermissionLevel } from "../../types/index.js";
 

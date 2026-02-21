@@ -1,4 +1,4 @@
-import BotClient from "./Client.js";
+import BotClient from "../Client.js";
 import Command from "../structures/Command.js";
 import { glob } from "glob";
 import path from "path";
@@ -18,7 +18,7 @@ export default class CommandManager {
 	async loadCommands() {
 		console.log("[CommandManager] Загружаю команды...");
 		const __dirname = path.dirname(fileURLToPath(import.meta.url));
-		const commandsPath = path.join(__dirname, "..", "commands");
+		const commandsPath = path.join(__dirname, "..", "..", "commands");
 		console.log(`[CommandManager] Searching in: ${commandsPath}`);
 		const commandFiles = await glob(`**/*.js`, { cwd: commandsPath });
 		console.log(`[CommandManager] Found ${commandFiles.length} files.`);
@@ -68,7 +68,7 @@ export default class CommandManager {
 
 	async registerBotCommands() {
 		const commandList = Array.from(this.commands.values()).map((cmd) => ({
-			command: cmd.info.name,
+			command: cmd.info.name.toLowerCase(),
 			description: cmd.info.description || "Нет описания",
 		}));
 

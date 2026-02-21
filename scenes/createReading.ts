@@ -146,7 +146,7 @@ const createReadingScene: WizardScene<CallbackContext> = {
 			if (ctx.callbackQuery?.data === backMenu) {
 				await ctx.answerCallbackQuery();
 				await ctx.scene.leave();
-				return ctx.services.menuHandler.showMenu(ctx, backMenu);
+				return ctx.services.menuManager.showMenu(ctx, backMenu);
 			}
 			return;
 		},
