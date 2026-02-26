@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.4](https://github.com/DriZ/Grammy/compare/v1.1.3...v1.1.4) (2026-02-26)
+
+
+### Bug Fixes
+
+* git reset --hard: Добавлена эта команда. Она принудительно сбрасывает все изменения в локальной копии репозитория на сервере, решая проблему с package-lock.json. ([c6b0b02](https://github.com/DriZ/Grammy/commit/c6b0b02764950e436e4fa21fd8645063df0d28a7))
+
 ### [1.1.3](https://github.com/DriZ/Grammy/compare/v1.1.2...v1.1.3) (2026-02-26)
 
 
