@@ -2,14 +2,15 @@
  * Event.ts - Базовый класс для событий
  */
 
-import { CallbackContext } from "../types/index.js";
-import BotClient from "../core/Client.js";
-import { FilterQuery } from "grammy";
+import type { CallbackContext, IEvent } from "@app-types/index.js";
+import type BotClient from "@core/Client.js";
+import type { FilterQuery } from "grammy";
+
 
 /**
  * Абстрактный класс для всех событий
  */
-export default abstract class Event {
+export abstract class BaseEvent implements IEvent {
 	protected client: BotClient;
 	public name: FilterQuery;
 	public once: boolean;

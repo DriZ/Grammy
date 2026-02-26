@@ -1,10 +1,11 @@
 import { InlineKeyboard } from "grammy";
-import { CallbackContext, WizardScene } from "../types/index.js";
+import type { CallbackContext } from "@app-types/index.js";
+import { BaseScene } from "@structures/index.js";
 
 export class SceneManager {
-	private scenes = new Map<string, WizardScene<CallbackContext>>();
+	private scenes = new Map<string, BaseScene>();
 
-	register(scene: WizardScene<CallbackContext>) {
+	register(scene: BaseScene) {
 		this.scenes.set(scene.name, scene);
 	}
 
@@ -81,7 +82,7 @@ export class SceneManager {
 		ctx.session.wizardState = {};
 	}
 
-	getScene(name: string): WizardScene<CallbackContext> | null {
+	getScene(name: string): BaseScene | null {
 		return this.scenes.get(name) || null;
 	}
 

@@ -1,7 +1,8 @@
-import { SessionContext, PermissionLevel } from "../types/index.js";
-import BotClient from "../core/Client.js";
-import { NextFunction } from "grammy";
-import config from "../config.js";
+import { type SessionContext, EPermissionLevel } from "@app-types/index.js";
+import type BotClient from "@core/Client.js";
+import type { NextFunction } from "grammy";
+import config from "@root/config.js";
+
 
 export function createCommandHandler(client: BotClient) {
 	return async (ctx: SessionContext, next: NextFunction): Promise<void> => {
@@ -41,22 +42,15 @@ export function createCommandHandler(client: BotClient) {
 			const isOwner = config.owner && userId === config.owner;
 			const isAdmin = config.admins && config.admins.includes(userId || 0);
 
-			if (command.config.permission && command.config.permission > PermissionLevel.User) {
-				if (command.config.permission === PermissionLevel.Owner && !isOwner) {
-					return void (await ctx.reply(`❌ Эта команда доступна только владельцу бота.`));
-				} else if (
-					command.config.permission === PermissionLevel.Admin &&
-					!isOwner &&
-					!isAdmin
-				) {
-					return void (await ctx.reply(
-						`❌ Эта команда доступна только администраторам.`,
-					));
-				}
+			if (command.config.permission && command.config.permission > EPermissionLevel.User) {
+				if (command.config.permission === EPermissionLevel.Owner && !isOwner)
+					return void (await ctx.reply(ctx.t("error.owner-only")));
+				else if (command.config.permission === EPermissionLevel.Admin && !isOwner && !isAdmin)
+					return void (await ctx.reply(ctx.t("error.admin-only")));
 			}
 
 			console.log(
-				`[CommandHandler] Executing command "${command.info.name}" for user ${ctx.from?.id}`,
+				`[CommandHandler] Executing command "${command.info.name}" for user ${userId ?? "unknown"}`,
 			);
 			try {
 				await command.execute(ctx, args);
@@ -65,7 +59,7 @@ export function createCommandHandler(client: BotClient) {
 					`[CommandHandler] Error executing command "${command.info.name}":`,
 					error,
 				);
-				await ctx.reply("❌ Произошла ошибка при выполнении команды.");
+				await ctx.reply(ctx.t("error.command-failed"));
 			}
 		} else {
 			return next();

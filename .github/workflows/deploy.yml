@@ -1,0 +1,33 @@
+name: Deploy to Server
+
+on:
+  # Запускаем воркфлоу при каждом пуше в ветку main
+  push:
+    branches:
+      - main
+  # Позволяет запускать воркфлоу вручную со страницы Actions
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Переходим в директорию проекта
+            cd ${{ secrets.PROJECT_PATH }}
+            # Получаем последние изменения из ветки main
+            git pull origin main
+            # Устанавливаем/обновляем зависимости
+            npm install
+            # Удаляем старые файлы
+            rm -rf dist
+            # Собираем TypeScript проект
+            npm run build
+            # Перезапускаем приложение через pm2 без простоя
+            pm2 reload bot

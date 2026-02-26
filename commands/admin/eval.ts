@@ -1,15 +1,16 @@
-import Command from "../../structures/Command.js";
-import type BotClient from "../../core/Client.js";
-import { BaseContext, PermissionLevel } from "../../types/index.js";
+import { BaseCommand } from "@structures/index.js";
+import type BotClient from "@core/Client.js";
+import { type BaseContext, EPermissionLevel } from "@app-types/index.js";
 import { inspect } from "util";
 
-export default class EvalCommand extends Command {
+
+export default class EvalCommand extends BaseCommand {
 	constructor(client: BotClient) {
 		super(client, {
 			name: "eval",
 			description: "Выполнить произвольный JavaScript код",
 			category: "Owner",
-			permission: PermissionLevel.Owner,
+			permission: EPermissionLevel.Owner,
 			usage: "/eval <код>",
 			aliases: ["e", "run"],
 			showInMenu: false,

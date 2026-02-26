@@ -1,16 +1,14 @@
-/**
- * Command.ts - Базовый класс для команд
- *
- * TypeScript концепции:
- * 1. Abstract класс - базовый класс, который нельзя инстанцировать напрямую
- * 2. Abstract методы - методы, которые должны быть реализованы в наследующих классах
- * 3. Interface для параметров конструктора
- * 4. Типизированные свойства
- */
-
-import { PermissionLevel } from "../types/index.js";
-import type { CommandInfo, CommandConfig, CommandOptions, BaseContext } from "../types/index.js";
-import BotClient from "../core/Client.js";
+/* eslint-disable prefer-const */
+import {
+	type ICommandInfo,
+	type ICommandConfig,
+	type ICommandOptions,
+	type BaseContext,
+	EPermissionLevel,
+	type SessionContext,
+	type CallbackContext
+} from "@app-types/index.js";
+import type BotClient from "@core/Client.js";
 
 /**
  * @abstract
@@ -25,22 +23,22 @@ import BotClient from "../core/Client.js";
  *     super(client, { name: 'ping', description: 'Checks bot latency.', permission: PermissionLevel.User });
  *   }
  *
- *   async execute(ctx: BaseContext) {
+ *   async execute(ctx: BaseContext | SessionContext | CallbackContext) {
  *     await ctx.reply('Pong!');
  *   }
  * }
  */
-export default abstract class Command {
+export abstract class BaseCommand {
 	// Типизированные свойства
-	protected client: BotClient;
-	public info: CommandInfo;
-	public config: CommandConfig;
+	protected readonly client: BotClient;
+	public info: ICommandInfo;
+	public config: ICommandConfig;
 	/**
 	 * Конструктор команды
 	 * @param client - экземпляр BotClient
 	 * @param options - опции конфигурации команды
 	 */
-	constructor(client: BotClient, options: CommandOptions) {
+	constructor(client: BotClient, options: ICommandOptions) {
 		this.client = client;
 		// Деструктуризация с значениями по умолчанию
 		let {
@@ -49,7 +47,7 @@ export default abstract class Command {
 			aliases = [],
 			category = "General",
 			usage = null,
-			permission = PermissionLevel.User,
+			permission = EPermissionLevel.User,
 			location = null,
 			enabled = true,
 			showInMenu = true,
@@ -85,18 +83,18 @@ export default abstract class Command {
 	 * Каждая дочерняя команда ДОЛЖНА реализовать этот метод.
 	 *
 	 * @abstract
-	 * @param {BaseContext} ctx - Контекст grammY.
+	 * @param {BaseContext | SessionContext | CallbackContext} ctx - Контекст grammY.
 	 * @param {string[]} [args] - Аргументы, переданные с командой.
 	 * @returns {Promise<void> | void}
 	 */
-	abstract execute(ctx: BaseContext, args?: string[]): Promise<void> | void;
+	abstract execute(ctx: BaseContext | SessionContext | CallbackContext, args?: string[]): Promise<void> | void;
 
 	/**
 	 * Перезагружает текущую команду.
 	 * @param {BaseContext} [ctx] - Контекст для отправки сообщений о статусе перезагрузки.
 	 * @returns {Promise<void>}
 	 */
-	async reload(ctx?: BaseContext): Promise<void> {
+	async reload(ctx?: BaseContext | SessionContext | CallbackContext): Promise<void> {
 		// Отправляем сообщение о начале перезагрузки
 		const msg = ctx ? await ctx.reply("♻️ Перезагрузка команды...") : null;
 

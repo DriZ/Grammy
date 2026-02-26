@@ -1,8 +1,8 @@
-import { Schema, model, Document, Types } from "mongoose";
+import { Schema, model, Document } from "mongoose";
 
 export interface IUser extends Document {
 	telegram_id: number;
-	name: string;
+	language?: string;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
@@ -10,11 +10,11 @@ export interface IUser extends Document {
 const userSchema = new Schema<IUser>(
 	{
 		telegram_id: {
-			type: Number,
+			type: Schema.Types.Number,
 			required: true,
 			unique: true,
 		},
-		name: { type: String },
+		language: { type: String, default: "ru" },
 	},
 	{ timestamps: true },
 );

@@ -1,8 +1,9 @@
-import Command from "../../structures/Command.js";
-import type BotClient from "../../core/Client.js";
-import { BaseContext, PermissionLevel } from "../../types/index.js";
+import { BaseCommand } from "@structures/index.js";
+import type BotClient from "@core/Client.js";
+import { type BaseContext, EPermissionLevel } from "@app-types/index.js";
 
-export default class PingCommand extends Command {
+
+export default class PingCommand extends BaseCommand {
 	/**
 	 * Конструктор команды
 	 */
@@ -13,7 +14,7 @@ export default class PingCommand extends Command {
 			usage: "/ping",
 			enabled: true,
 			location: null,
-			permission: PermissionLevel.User,
+			permission: EPermissionLevel.User,
 			description: "Проверить скорость отклика бота",
 			aliases: ["p", "pong"],
 		});

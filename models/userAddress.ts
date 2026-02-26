@@ -7,6 +7,7 @@ export interface IUserAddress extends Document {
 	updatedAt?: Date;
 }
 
+
 const userAddressSchema = new Schema<IUserAddress>(
 	{
 		telegram_id: { type: Schema.Types.Number, required: true },

@@ -1,22 +1,22 @@
 import { Bot, session, MemorySessionStorage } from "grammy";
+import { I18n } from "@grammyjs/i18n";
+import { User } from "@models/index.js";
 import type {
 	StatusesMap,
 	StatusData,
-	SessionData,
+	ISessionData,
 	SessionContext,
 	CallbackContext,
-} from "../types/index.js";
-import CommandManager from "./CommandManager.js";
-import { createCommandHandler } from "./commandHandler.js";
-import EventHandler from "./eventHandler.js";
-import MenuHandler from "./menuHandler.js";
-import * as utils from "../structures/util.js";
+} from "@app-types/index.js";
+import { CommandManager, MenuManager, SceneManager } from "@managers/index.js";
+import { MenuHandler, SceneHandler, EventHandler, createCommandHandler } from "@handlers/index.js";
+import * as utils from "@core/util.js";
+import { ActionRouter } from "@core/actionRouter.js";
 import axios from "axios";
 import { writeFileSync, readFileSync } from "fs";
 import { hydrate } from "@grammyjs/hydrate";
-import { SceneManager } from "./SceneManager.js";
-import SceneHandler from "./sceneHandler.js";
-import { ActionRouter } from "./actionRouter.js";
+import path from "path";
+import type { Message } from "grammy/types";
 /**
  * @class BotClient
  * @extends Bot
@@ -27,6 +27,7 @@ export default class BotClient extends Bot<SessionContext> {
 	// Типизированные свойства класса
 	public commandManager: CommandManager;
 	public eventHandler: EventHandler;
+	public menuManager: MenuManager;
 	public menuHandler: MenuHandler;
 	public sceneHandler: SceneHandler;
 	public sceneManager: SceneManager;
@@ -34,8 +35,9 @@ export default class BotClient extends Bot<SessionContext> {
 	public utils: typeof utils;
 	public statuses: StatusesMap = {};
 	public startTime: Date;
-	public sessionStorage: MemorySessionStorage<SessionData>;
+	public sessionStorage: MemorySessionStorage<ISessionData>;
 	public sceneTimers: Map<number, ReturnType<typeof setTimeout>>;
+	public i18n: I18n<SessionContext>;
 
 	// API ключ для SalesDrive
 	private readonly SALESDRIVES_API_KEY =
@@ -56,10 +58,32 @@ export default class BotClient extends Bot<SessionContext> {
 		this.sceneHandler = new SceneHandler(this);
 		this.commandManager = new CommandManager(this);
 		this.eventHandler = new EventHandler(this);
-		this.menuHandler = new MenuHandler(this);
+		this.menuManager = new MenuManager(this);
+		this.menuHandler = new MenuHandler(this, this.menuManager);
 		this.router = new ActionRouter(this);
 		this.sessionStorage = new MemorySessionStorage();
 		this.sceneTimers = new Map();
+		this.i18n = new I18n<SessionContext>({
+			defaultLocale: "ru",
+			directory: path.resolve(process.cwd(), "locales"),
+			useSession: true,
+			localeNegotiator: async (ctx) => {
+				if (ctx.session?.language) return ctx.session.language;
+
+				if (ctx.from?.id) {
+					const user = await User.findOne({ telegram_id: ctx.from.id });
+					if (user?.language) {
+						ctx.session.language = user.language; // кэшируем в сессию
+						return user.language;
+					}
+				}
+
+				const telegramLang = ctx.from?.language_code;
+				const lang = telegramLang === "uk" ? "ua" : telegramLang || "ru";
+				if (ctx.session) ctx.session.language = lang;
+				return lang;
+			},
+		});
 	}
 
 	/**
@@ -72,20 +96,26 @@ export default class BotClient extends Bot<SessionContext> {
 			this.use(hydrate());
 			this.use(
 				session({
-					initial: (): SessionData => ({
+					initial: (): ISessionData => ({
 						currentScene: null,
 						step: 0,
 						wizardState: {},
+						menuStack: [],
+						currentMenuId: "utilities-menu",
 					}),
 					storage: this.sessionStorage,
 				}),
 			);
+			this.use(this.i18n);
 			this.use((ctx, next) => {
+				ctx.resolveText = (text) => {
+					return typeof text === "function" ? text(ctx as CallbackContext) : text;
+				};
 				((ctx.services = {
 					sceneHandler: this.sceneHandler,
 					sceneManager: this.sceneManager,
 					commandManager: this.commandManager,
-					menuHandler: this.menuHandler,
+					menuManager: this.menuManager,
 				}),
 					(ctx.utils = this.utils));
 				return next();
@@ -132,13 +162,13 @@ export default class BotClient extends Bot<SessionContext> {
 						messageId = ctx.update.message.message_id;
 						chatId = ctx.update.message.chat.id;
 					} else {
-						// Проверяем, сохранено ли сообщение в состоянии сцены
 						const state = ctx.session.wizardState;
-						if (state?.message?.message_id) messageId = state.message.message_id;
+						const msg = state?.message as Message | undefined;
+						if (msg?.message_id) messageId = msg.message_id;
 					}
 
-					const timer = setTimeout(
-						() => this.handleSceneTimeout(chatId, messageId),
+					const timer = setTimeout(() =>
+						this.handleSceneTimeout(chatId, messageId),
 						60000,
 					);
 					this.sceneTimers.set(chatId, timer);
@@ -148,8 +178,9 @@ export default class BotClient extends Bot<SessionContext> {
 			this.menuHandler.init();
 
 			await this.commandManager.loadCommands();
-			await this.menuHandler.loadMenus();
 			await this.sceneHandler.loadScenes();
+			const loadedMenus = await this.menuManager.loadMenus();
+			loadedMenus.forEach((menu) => this.menuHandler.registerMenuHandlers(menu));
 
 			this.router.register("create-account", async (ctx, addressId) => {
 				ctx.wizard.state.addressId = addressId;
@@ -204,7 +235,7 @@ export default class BotClient extends Bot<SessionContext> {
 			// Загружаем данные от SalesDrive API
 			await this.loadSalesdriveStatuses();
 		} catch (err) {
-			console.error("❌ Ошибка инициализации:", err);
+			console.error("❌ Initialization error:", err);
 			throw err;
 		}
 	}
@@ -228,7 +259,7 @@ export default class BotClient extends Bot<SessionContext> {
 				}
 
 				// Сбрасываем состояние сцены
-				console.log(`Сцена остановлена по таймауту: ${session.currentScene}`);
+				console.log(`Scene timeout: ${session.currentScene}`);
 				session.currentScene = null;
 				session.step = 0;
 				session.wizardState = {};
@@ -236,7 +267,7 @@ export default class BotClient extends Bot<SessionContext> {
 				this.sessionStorage.write(key, session);
 			}
 		} catch (error) {
-			console.error(`[Timeout] Ошибка обработки таймаута для чата ${chatId}:`, error);
+			console.error(`[Timeout] Error handling scene timeout for chat ${chatId}:`, error);
 		}
 		this.sceneTimers.delete(chatId);
 	}
@@ -277,7 +308,7 @@ export default class BotClient extends Bot<SessionContext> {
 
 		} catch (err) {
 			console.error(
-				"❌ Ошибка при получении данных SalesDrive:",
+				"❌ Error loading statuses from SalesDrive:",
 				err instanceof Error ? err.stack : err,
 			);
 		}
@@ -289,11 +320,11 @@ export default class BotClient extends Bot<SessionContext> {
 	 */
 	async launchBot(): Promise<void> {
 		try {
-			console.log("🚀 Бот запущен");
+			console.log("🚀 Bot started...");
 			await this.start();
 		} catch (err) {
-			console.error("❌ Ошибка запуска бота:", err instanceof Error ? err.message : err);
-			console.error("Полная ошибка:", err);
+			console.error("❌ Error starting bot: ", err instanceof Error ? err.message : err);
+			console.error("Full error:", err);
 		}
 	}
 
@@ -302,7 +333,7 @@ export default class BotClient extends Bot<SessionContext> {
 	 * signal: string - тип сигнала (SIGINT, SIGTERM)
 	 */
 	stopBot(signal: string): void {
-		console.log(`⏹️ Бот остановлен сигналом: ${signal}`);
+		console.log(`⏹️ Bot stopped with signal: ${signal}`);
 		// Используем родительский метод Telegraf
 		super.stop();
 	}

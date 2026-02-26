@@ -2,15 +2,15 @@
  * edited_message.ts - Событие для обработки отредактированных сообщений
  */
 
-import Event from "../structures/Event.js";
-import type BotClient from "../core/Client.js";
-import { SessionContext } from "../types/index.js";
-import { FilterQuery } from "grammy";
+import { BaseEvent } from "@structures/index.js";
+import type BotClient from "@core/Client.js";
+import type { SessionContext } from "@app-types/index.js";
+import type { FilterQuery } from "grammy";
 
 /**
  * Событие редактирования сообщений
  */
-export default class EditedMessageEvent extends Event {
+export default class EditedMessageEvent extends BaseEvent {
 	constructor(client: BotClient, name: FilterQuery) {
 		super(client, name);
 	}
@@ -21,7 +21,7 @@ export default class EditedMessageEvent extends Event {
 	 */
 	async execute(ctx: SessionContext): Promise<void> {
 		// Пропускаем обработку если пользователь находится в сцене
-		const currentScene = (ctx as any).session?.__scenes?.current;
+		const currentScene = ctx.session?.currentScene
 		if (currentScene) {
 			// Пусть сцена обработает сообщение
 			return;
@@ -37,7 +37,7 @@ export default class EditedMessageEvent extends Event {
 			return;
 		}
 
-		const editedText = "text" in ctx.editedMessage ? (ctx.editedMessage as any).text : "N/A";
+		const editedText = "text" in ctx.editedMessage ? ctx.editedMessage.text : "N/A";
 		console.log(`📝 Сообщение отредактировано от ${ctx.from?.first_name}:`);
 		console.log(`   Текст: ${editedText}`);
 	}

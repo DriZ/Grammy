@@ -1,12 +1,13 @@
-import BotClient from "./Client.js";
-import Command from "../structures/Command.js";
+import type BotClient from "@core/Client.js";
+import { BaseCommand } from "@structures/index.js";
 import { glob } from "glob";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 
-export default class CommandManager {
+
+export class CommandManager {
 	public client: BotClient;
-	public commands: Map<string, Command>;
+	public commands: Map<string, BaseCommand>;
 	public aliases: Map<string, string>;
 
 	constructor(client: BotClient) {
@@ -18,7 +19,7 @@ export default class CommandManager {
 	async loadCommands() {
 		console.log("[CommandManager] Загружаю команды...");
 		const __dirname = path.dirname(fileURLToPath(import.meta.url));
-		const commandsPath = path.join(__dirname, "..", "commands");
+		const commandsPath = path.join(__dirname, "..", "..", "commands");
 		console.log(`[CommandManager] Searching in: ${commandsPath}`);
 		const commandFiles = await glob(`**/*.js`, { cwd: commandsPath });
 		console.log(`[CommandManager] Found ${commandFiles.length} files.`);
@@ -32,7 +33,7 @@ export default class CommandManager {
 					const module = await import(fileUrl);
 					const CommandClass = module.default;
 
-					if (CommandClass && CommandClass.prototype instanceof Command) {
+					if (CommandClass && CommandClass.prototype instanceof BaseCommand) {
 						const command = new CommandClass(this.client);
 						command.config.location = filePath;
 
@@ -68,7 +69,7 @@ export default class CommandManager {
 
 	async registerBotCommands() {
 		const commandList = Array.from(this.commands.values()).map((cmd) => ({
-			command: cmd.info.name,
+			command: cmd.info.name.toLowerCase(),
 			description: cmd.info.description || "Нет описания",
 		}));
 
@@ -95,8 +96,8 @@ export default class CommandManager {
 			const fileUrl = `${pathToFileURL(commandPath).href}?update=${Date.now()}`;
 			const module = await import(fileUrl);
 			const CommandClass = module.default;
-			if (CommandClass && CommandClass.prototype instanceof Command) {
-				const command = new CommandClass(this.client) as Command;
+			if (CommandClass && CommandClass.prototype instanceof BaseCommand) {
+				const command = new CommandClass(this.client) as BaseCommand;
 				command.config.location = commandPath;
 				if (command.info.name) {
 					this.commands.set(command.info.name.toLowerCase(), command);

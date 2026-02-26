@@ -1,24 +1,30 @@
 {
-	"name": "telegraf",
-	"version": "1.0.0",
-	"description": "",
+	"name": "grammy",
+	"version": "1.1.0",
+	"description": "Телеграм-бот для сохранения показаний коммунальных услуг.",
 	"main": "dist/index.js",
 	"type": "module",
+	"homepage": "https://grammy.driz.pp.ua/",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/DriZ/Grammy.git"
+	},
 	"scripts": {
-		"build": "tsc",
+		"build": "tsc && tsc-alias",
 		"docs": "typedoc",
 		"start": "npm run build && node -r dotenv/config dist/index.js",
-		"dev": "node --loader ts-node/esm -r dotenv/config index.ts",
+		"dev": "tsx -r dotenv/config index.ts",
 		"lint": "eslint . --ext .ts",
 		"lint:fix": "eslint . --ext .ts --fix",
 		"format": "prettier --write .",
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"release": "standard-version"
 	},
 	"author": "DriZ",
 	"license": "MIT",
 	"dependencies": {
 		"@azure/msal-node": "^5.0.2",
 		"@grammyjs/hydrate": "^1.6.0",
+		"@grammyjs/i18n": "^1.1.2",
 		"axios": "^1.13.4",
 		"dotenv": "^17.2.3",
 		"glob": "^13.0.5",
@@ -32,7 +38,10 @@
 		"eslint": "^8.56.0",
 		"eslint-config-prettier": "^9.1.0",
 		"prettier": "^3.1.1",
+		"standard-version": "^9.5.0",
 		"ts-node": "^10.9.2",
+		"tsc-alias": "^1.8.16",
+		"tsx": "^4.21.0",
 		"typedoc": "^0.28.17",
 		"typescript": "^5.9.3"
 	}
