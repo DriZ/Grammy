@@ -1,10 +1,10 @@
 name: Deploy to Server
 
 on:
-  # Запускаем воркфлоу при каждом пуше в ветку main
+  # Запускаем воркфлоу при каждом пуше в ветку master
   push:
     branches:
-      - main
+      - master
   # Позволяет запускать воркфлоу вручную со страницы Actions
   workflow_dispatch:
 
