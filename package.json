@@ -1,6 +1,6 @@
 {
 	"name": "grammy",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "Телеграм-бот для сохранения показаний коммунальных услуг.",
 	"main": "dist/index.js",
 	"type": "module",
