@@ -25,7 +25,7 @@ jobs:
             # Переходим в директорию проекта
             cd ${{ secrets.PROJECT_PATH }}
             # Получаем последние изменения из ветки main
-            git pull origin main
+            git pull origin master
             # Устанавливаем/обновляем зависимости
             npm install
             # Удаляем старые файлы
