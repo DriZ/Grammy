@@ -20,11 +20,13 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             # Загружаем переменные окружения, включая PATH для Node.js, npm и pm2
-            export NVM_DIR="$HOME/.nvm"
+            export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             # Переходим в директорию проекта
             cd ${{ secrets.PROJECT_PATH }}
-            # Получаем последние изменения из ветки main
+            # Сбрасываем любые локальные изменения (например, в package-lock.json), чтобы избежать конфликтов
+            git reset --hard
+            # Получаем последние изменения из ветки master
             git pull origin master
             # Устанавливаем/обновляем зависимости
             npm install
