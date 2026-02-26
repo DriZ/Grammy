@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.1](https://github.com/DriZ/Grammy/compare/v1.1.0...v1.1.1) (2026-02-26)
+
+
+### Bug Fixes
+
+* branch name in deploy.yml ([7a44872](https://github.com/DriZ/Grammy/commit/7a44872e28b1b52f51d0c2625d4d75d57f554c6a))
+
 ## 1.1.0 (2026-02-26)
 
 
