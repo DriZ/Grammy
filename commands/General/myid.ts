@@ -1,19 +1,9 @@
-/**
- * myid.ts - Команда для получения ID пользователя
- */
+import { BaseCommand } from "@structures/index.js";
+import type BotClient from "@core/Client.js";
+import { type BaseContext, EPermissionLevel } from "@app-types/index.js";
 
-import Command from "../../core/structures/Command.js";
-import type BotClient from "../../core/Client.js";
-import { BaseContext, PermissionLevel } from "../../types/index.js";
 
-/**
- * Команда myid - показывает ID пользователя
- *
- * Optional chaining (?.) - одна из ключевых фич TypeScript:
- * const userId = ctx.from?.id;
- * Означает: если ctx.from существует, получить id, иначе undefined
- */
-export default class MyIdCommand extends Command {
+export default class MyIdCommand extends BaseCommand {
 	constructor(client: BotClient) {
 		super(client, {
 			name: "myid",
@@ -23,7 +13,7 @@ export default class MyIdCommand extends Command {
 			usage: "/myid",
 			enabled: true,
 			location: null,
-			permission: PermissionLevel.User,
+			permission: EPermissionLevel.User,
 		});
 	}
 

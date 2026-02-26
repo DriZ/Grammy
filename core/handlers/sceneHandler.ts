@@ -1,13 +1,16 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import BotClient from "../Client.js";
-import { CallbackContext, WizardScene } from "../../types/index.js";
+import type BotClient from "@core/Client.js";
+import { BaseScene } from "@structures/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default class SceneHandler {
+/**
+ * Обработчик сцен
+ */
+export class SceneHandler {
 	private client: BotClient;
 
 	constructor(client: BotClient) {
@@ -23,12 +26,16 @@ export default class SceneHandler {
 		}
 
 		const module = await import(`file://${scenePath}`);
-		const scene = module.default as WizardScene<CallbackContext>;
+		const SceneClass = module.default;
 
-		if (!scene?.name || !scene?.steps) {
-			console.warn(`⚠️  └─ Сцена в файле ${scenePath} некорректна. Пропускаю...`);
+		// Проверяем, является ли экспорт классом, наследующим Scene
+		if (!SceneClass || !(SceneClass.prototype instanceof BaseScene)) {
+			console.warn(`⚠️  └─ Файл ${scenePath} не экспортирует класс сцены.`);
 			return;
 		}
+
+		// Создаем экземпляр сцены
+		const scene = new SceneClass(this.client) as BaseScene;
 
 		// Регистрируем сцену напрямую в SceneManager
 		this.client.sceneManager.register(scene);

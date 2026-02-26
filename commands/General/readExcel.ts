@@ -1,8 +1,9 @@
-import BotClient from "../../core/Client.js";
-import Command from "../../core/structures/Command.js";
-import { CallbackContext, PermissionLevel } from "../../types/index.js";
+import type BotClient from "@core/Client.js";
+import { BaseCommand } from "@structures/index.js";
+import { type CallbackContext, EPermissionLevel } from "@app-types/index.js";
 
-export default class extends Command {
+
+export default class extends BaseCommand {
 	public readonly client: BotClient;
 
 	constructor(client: BotClient) {
@@ -11,7 +12,7 @@ export default class extends Command {
 			description: "Прочитать данные из Excel файла",
 			aliases: ["re", "readxls"],
 			name: "readExcel",
-			permission: PermissionLevel.User
+			permission: EPermissionLevel.User
 		});
 		this.client = client;
 	}

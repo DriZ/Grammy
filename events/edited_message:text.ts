@@ -2,15 +2,15 @@
  * edited_message.ts - Событие для обработки отредактированных сообщений
  */
 
-import Event from "../core/structures/Event.js";
-import type BotClient from "../core/Client.js";
-import { SessionContext } from "../types/index.js";
-import { FilterQuery } from "grammy";
+import { BaseEvent } from "@structures/index.js";
+import type BotClient from "@core/Client.js";
+import type { SessionContext } from "@app-types/index.js";
+import type { FilterQuery } from "grammy";
 
 /**
  * Событие редактирования сообщений
  */
-export default class EditedMessageEvent extends Event {
+export default class EditedMessageEvent extends BaseEvent {
 	constructor(client: BotClient, name: FilterQuery) {
 		super(client, name);
 	}

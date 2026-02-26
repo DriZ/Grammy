@@ -4,15 +4,15 @@
  * Это событие срабатывает на ВСЕ сообщения, а не только команды
  */
 
-import Event from "../core/structures/Event.js";
-import { SessionContext } from "../types/index.js";
-import type BotClient from "../core/Client.js";
-import { FilterQuery } from "grammy";
+import { BaseEvent } from "@structures/index.js";
+import type { SessionContext } from "@app-types/index.js";
+import type BotClient from "@core/Client.js";
+import type { FilterQuery } from "grammy";
 
 /**
  * События для сообщений
  */
-export default class MessageEvent extends Event {
+export default class MessageEvent extends BaseEvent {
 	constructor(client: BotClient, name: FilterQuery) {
 		// Регистрируем событие только для текстовых сообщений
 		super(client, name, false);

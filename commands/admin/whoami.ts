@@ -1,8 +1,9 @@
-import Command from "../../core/structures/Command.js";
-import { PermissionLevel, type BaseContext } from "../../types/index.js";
-import type BotClient from "../../core/Client.js";
+import { BaseCommand } from "@structures/index.js";
+import { EPermissionLevel, type BaseContext } from "@app-types/index.js";
+import type BotClient from "@core/Client.js";
 
-export default class WhoamiCommand extends Command {
+
+export default class WhoamiCommand extends BaseCommand {
 	constructor(client: BotClient) {
 		super(client, {
 			name: "whoami",
@@ -12,7 +13,7 @@ export default class WhoamiCommand extends Command {
 			enabled: true,
 			location: null,
 			description: "Показать информацию о себе",
-			permission: PermissionLevel.Admin,
+			permission: EPermissionLevel.Admin,
 		});
 	}
 

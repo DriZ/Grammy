@@ -1,7 +1,8 @@
 import dotenv from "dotenv/config.js";
-import BotClient from "./core/Client.js";
-import { initializeDatabase, mongoose } from "./models/index.js";
+import BotClient from "@core/Client.js";
+import { initializeDatabase } from "@models/index.js";
 import { GrammyError, HttpError } from "grammy";
+import mongoose from "mongoose";
 dotenv;
 
 function logStartup(): void {

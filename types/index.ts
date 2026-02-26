@@ -1,11 +1,9 @@
-import { CallbackQueryContext, Context, SessionFlavor } from "grammy";
-import { HydrateFlavor } from "@grammyjs/hydrate";
-import MenuManager from "../core/managers/MenuManager.js";
-import SceneHandler from "../core/handlers/sceneHandler.js";
-import { SceneManager } from "../core/managers/SceneManager.js";
-import * as utils from "../core/util.js";
-import CommandManager from "../core/managers/CommandManager.js";
-import { I18nFlavor } from "@grammyjs/i18n"
+import { type CallbackQueryContext, Context, type FilterQuery, type SessionFlavor } from "grammy";
+import { type HydrateFlavor } from "@grammyjs/hydrate";
+import type { MenuManager, CommandManager, SceneManager } from "@managers/index.js";
+import type { SceneHandler } from "@handlers/index.js";
+import * as utils from "@core/util.js";
+import { type I18nFlavor } from "@grammyjs/i18n"
 
 // ============================================================
 // 🤖 Типы конфигурации и уровни доступа
@@ -14,20 +12,16 @@ import { I18nFlavor } from "@grammyjs/i18n"
 /**
  * Основная конфигурация бота
  */
-export interface BotConfig {
+export interface IBotConfig {
 	owner: number | null;
 	admins: number[];
-	permissions: {
-		EVERYONE: 0;
-		ADMIN: 1;
-		OWNER: 2;
-	};
+	permissions: typeof EPermissionLevel;
 }
 
 /**
  * Информация о команде
  */
-export interface CommandInfo {
+export interface ICommandInfo {
 	name: string;
 	description: string;
 	aliases: string[];
@@ -38,8 +32,8 @@ export interface CommandInfo {
 /**
  * Конфигурация команды
  */
-export interface CommandConfig {
-	permission: number;
+export interface ICommandConfig {
+	permission: TPermissionLevel;
 	location: string | null;
 	enabled: boolean;
 	showInMenu: boolean;
@@ -48,32 +42,34 @@ export interface CommandConfig {
 /**
  * Структура команды
  */
-export interface Command {
-	info: CommandInfo;
-	config: CommandConfig;
+export interface ICommand {
+	info: ICommandInfo;
+	config: ICommandConfig;
 }
+
+export const EPermissionLevel = {
+	User: 0,
+	Admin: 1,
+	Owner: 2,
+} as const;
 
 /** * Уровни прав доступа:
  * - User (0): доступ для всех пользователей
  * - Admin (1): доступ только администраторам или владельцу
  * - Owner (2): доступ только владельцу
  */
-export enum PermissionLevel {
-	User = 0,
-	Admin = 1,
-	Owner = 2,
-}
+export type TPermissionLevel = typeof EPermissionLevel[keyof typeof EPermissionLevel];
 
 /**
  * Опции для создания команды
  */
-export interface CommandOptions {
+export interface ICommandOptions {
 	name: string;
 	description: string;
 	aliases?: string[];
 	category?: string;
 	usage?: string;
-	permission: Readonly<PermissionLevel>;
+	permission: Readonly<TPermissionLevel>;
 	location?: string | null;
 	enabled?: boolean;
 	showInMenu?: boolean;
@@ -82,35 +78,35 @@ export interface CommandOptions {
 /**
  * Данные, сохраняемые в сессию
  */
-export interface SessionData {
+export interface ISessionData {
 	currentScene?: string | null;
 	step?: number;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	wizardState?: Record<string, any>;
+	wizardState?: Record<string, unknown>;
 	menuStack: string[];
 	currentMenuId?: string;
+	language?: string;
 }
 
 /**
  * Сервисы, которые будут переданы в контекст для доступа к ним
  */
-export interface Services {
+export interface IServices {
 	menuManager: MenuManager;
 	sceneHandler: SceneHandler;
 	sceneManager: SceneManager;
 	commandManager: CommandManager;
 }
 
-export interface ServicesFlavor {
-	services: Services;
+export interface IServicesFlavor {
+	services: IServices;
 	utils: typeof utils;
 }
 
-export type BaseContext = HydrateFlavor<Context> & ServicesFlavor & I18nFlavor & {
-	resolveText: (text: string | ((ctx: any) => string)) => string;
+export type BaseContext = HydrateFlavor<Context> & IServicesFlavor & I18nFlavor & {
+	resolveText: (text: string | ((ctx: CallbackContext) => string)) => string;
 };
 export type SessionContext = BaseContext &
-	SessionFlavor<SessionData> & {
+	SessionFlavor<ISessionData> & {
 		wizard: {
 			next: () => Promise<void>;
 			back: () => Promise<void>;
@@ -129,17 +125,22 @@ export type SessionContext = BaseContext &
 	};
 export type CallbackContext = CallbackQueryContext<SessionContext> & SessionContext;
 
-export interface Scene<C> {
+export interface IScene<C> {
 	name: string;
 	enter: (ctx: C, params?: object | null) => Promise<void>;
 	handle: (ctx: C) => Promise<void>;
 	leave?: (ctx: C) => Promise<void>;
 }
 
-export interface WizardScene<C> {
+export interface IWizardScene<C> {
 	name: string;
 	steps: Array<(ctx: C, params?: object | null) => Promise<void>>;
 }
+
+/**
+* Тип для функции шага сцены
+*/
+export type TStepHandler = (ctx: CallbackContext) => Promise<void>;
 
 // ============================================================
 // 🔘 Типы меню и кнопок
@@ -148,7 +149,7 @@ export interface WizardScene<C> {
 /**
  * Кнопка в меню
  */
-export interface MenuButton {
+export interface IMenuButton {
 	text: string | ((ctx: CallbackContext) => string);
 	nextMenu?: string;
 	callback: string; // для inline кнопок
@@ -158,19 +159,35 @@ export interface MenuButton {
 /**
  * Структура меню
  */
-export interface Menu {
+export interface IMenu {
 	id: string;
 	title: string | ((ctx: CallbackContext) => string);
-	buttons: MenuButton[];
+	buttons: IMenuButton[];
 	callback?: string;
 	inline: boolean;
-	action?: (ctx: CallbackContext) => void;
+	execute?: (ctx: CallbackContext) => void;
 }
+
+export interface IEvent {
+	name: FilterQuery;
+	once: boolean;
+	info: {
+		name: string;
+	};
+}
+
+export interface IResourseProps {
+	name: string;
+	emoji: string;
+}
+
+type TResourceRecord = Readonly<Record<string, IResourseProps>>;
+
 
 /**
  * Возвращает имя и эмодзи типа ресурса
  */
-export const Resource = {
+export const EResource: TResourceRecord = {
 	electricity: {
 		name: "electricity",
 		emoji: "⚡️",
@@ -184,6 +201,10 @@ export const Resource = {
 		emoji: "🔥",
 	},
 } as const;
+
+export type TResource = typeof EResource[keyof typeof EResource];
+export type TResourceType = keyof typeof EResource;
+
 
 // ============================================================
 // 👤 Типы пользователя и аккаунта
@@ -401,7 +422,7 @@ export interface PluralizeOptions {
 /**
  * Проверяет, является ли значение BotConfig
  */
-export function isBotConfig(value: unknown): value is BotConfig {
+export function isBotConfig(value: unknown): value is IBotConfig {
 	if (typeof value !== "object" || value === null) return false;
 	const config = value as Record<string, unknown>;
 	return (

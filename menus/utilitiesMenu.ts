@@ -1,40 +1,43 @@
 import { InlineKeyboard } from "grammy";
 import { UserAddress } from "../models/index.js";
-import { CallbackContext, Menu, MenuButton } from "../types/index.js";
-import { makeAddressMenu } from "./utility-menus.js";
+import type { CallbackContext, IMenuButton } from "../types/index.js";
+import { AddressMenu } from "./addressMenus.js";
+import { BaseMenu } from "../core/structures/index.js";
+import type BotClient from "../core/Client.js";
 
-const utilitiesMenu: Menu = {
-	id: "utilities-menu",
-	title: "⚙️ Коммунальные услуги",
-	inline: true,
-	buttons: [
-		{
-			text: "➕ Создать адрес",
-			callback: "create-address",
-			action: async (ctx) => {
-				await ctx.answerCallbackQuery();
-				await ctx.services.sceneManager.enter(ctx as CallbackContext, "create-address");
-			},
-		},
-		{
-			text: "❌ Закрыть",
-			callback: "close",
-			action: async (ctx) => {
-				await ctx.answerCallbackQuery();
-				await ctx.callbackQuery.message?.delete();
-			},
-		},
-	],
-	action: async (ctx) => {
-		const telegramId = ctx.from?.id;
-		if (!telegramId) return ctx.callbackQuery.message?.editText(
-			typeof utilitiesMenu.title === "function" 
-				? utilitiesMenu.title(ctx) 
-				: utilitiesMenu.title, 
+export default class UtilitiesMenu extends BaseMenu {
+	constructor(client: BotClient) {
+		super(client, "utilities-menu");
+	}
+
+	get title(): string | ((ctx: CallbackContext) => string) {
+		return (ctx: CallbackContext) => ctx.t("utilities-menu.title");
+	}
+
+	get buttons(): IMenuButton[] {
+		return [
 			{
-				reply_markup: new InlineKeyboard().text("❌ Закрыть", "cancel"),
-			}
-		);
+				text: ctx => ctx.t("button.create-address"),
+				callback: "create-address",
+				action: async (ctx) => {
+					await ctx.answerCallbackQuery();
+					await ctx.services.sceneManager.enter(ctx as CallbackContext, "create-address");
+				},
+			},
+			{
+				text: ctx => ctx.t("button.close"),
+				callback: "delete-msg",
+				action: async (ctx) => {
+					await ctx.answerCallbackQuery();
+					await ctx.callbackQuery?.message?.delete();
+				},
+			},
+		];
+	}
+
+	async execute(ctx: CallbackContext) {
+		const telegramId = ctx.from?.id;
+		if (!telegramId) return super.execute(ctx);
 
 		const userAddresses = await UserAddress.find({ telegram_id: telegramId }).populate(
 			"address_id",
@@ -47,27 +50,27 @@ const utilitiesMenu: Menu = {
 				const callback = `address-${addr._id}`;
 
 				// Регистрируем меню для этого адреса
-				const addrMenu = makeAddressMenu(addr._id.toString());
-				if (!ctx.services.menuManager.menus.has(addrMenu.id))
-					ctx.services.menuManager.registerMenu(addrMenu.id, addrMenu);
+				const addrMenu = new AddressMenu(this.client, addr._id.toString());
+				this.registerSubMenu(ctx, addrMenu);
 
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				keyboard.text(`🏠 ${(addr as any).name}`, callback).row();
 			});
 		}
 
 		// стандартные кнопки
-		utilitiesMenu.buttons.forEach((btn: MenuButton) => {
+		this.buttons.forEach((btn: IMenuButton) => {
 			keyboard.text(typeof btn.text === "function" ? btn.text(ctx) : btn.text, btn.callback).row();
 		});
 
+		const title = typeof this.title === "function" ? this.title(ctx) : this.title;
+
 		if (ctx.callbackQuery) {
-			await ctx.callbackQuery.message?.editText(typeof utilitiesMenu.title === "function" ? utilitiesMenu.title(ctx) : utilitiesMenu.title, {
+			await ctx.callbackQuery.message?.editText(title, {
 				reply_markup: keyboard,
 			});
 		} else {
-			await ctx.reply(typeof utilitiesMenu.title === "function" ? utilitiesMenu.title(ctx) : utilitiesMenu.title, { reply_markup: keyboard });
+			await ctx.reply(title, { reply_markup: keyboard });
 		}
-	},
-};
-
-export default utilitiesMenu;
+	}
+}

@@ -7,9 +7,9 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { CallbackContext } from "../../types/index.js";
-import Event from "../structures/Event.js";
-import BotClient from "../Client.js";
+import type { CallbackContext } from "@app-types/index.js";
+import { BaseEvent } from "@structures/index.js";
+import type BotClient from "@core/Client.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,9 +17,9 @@ const __dirname = path.dirname(__filename);
 /**
  * Обработчик событий
  */
-export default class EventHandler {
+export class EventHandler {
 	private client: BotClient;
-	private _events: Map<string, Event>;
+	private _events: Map<string, BaseEvent>;
 
 	/**
 	 * Конструктор
@@ -37,7 +37,7 @@ export default class EventHandler {
 	 */
 	async loadEvents(
 		eventsDir: string = path.join(__dirname, "..", "events"),
-	): Promise<Map<string, Event>> {
+	): Promise<Map<string, BaseEvent>> {
 		// Проверяем, существует ли папка events
 		if (!fs.existsSync(eventsDir)) {
 			console.warn(`⚠️  Папка events не найдена: ${eventsDir}`);
@@ -52,7 +52,7 @@ export default class EventHandler {
 
 			try {
 				const module = await import(`file://${filePath}`);
-				const event = new module.default(this.client, eventName) as Event;
+				const event = new module.default(this.client, eventName) as BaseEvent;
 
 				if (!event.name) {
 					console.warn(`⚠️  Событие в файле ${file} не имеет имени. Пропускаю...`);
@@ -114,7 +114,7 @@ export default class EventHandler {
 	 * @param name - имя события
 	 * @returns Event или null
 	 */
-	getEvent(name: string): Event | null {
+	getEvent(name: string): BaseEvent | null {
 		return this._events.get(name) || null;
 	}
 
@@ -122,7 +122,7 @@ export default class EventHandler {
 	 * Получить все события
 	 * @returns Map со всеми событиями
 	 */
-	getAllEvents(): Map<string, Event> {
+	getAllEvents(): Map<string, BaseEvent> {
 		return this._events;
 	}
 }

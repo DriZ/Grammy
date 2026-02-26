@@ -1,17 +1,9 @@
-/**
- * reboot.ts - Команда для перезагрузки бота
- *
- * Требует прав администратора (permission: 1)
- */
+import { BaseCommand } from "@structures/index.js";
+import type BotClient from "@core/Client.js";
+import { type BaseContext, EPermissionLevel } from "@app-types/index.js";
 
-import Command from "../../core/structures/Command.js";
-import type BotClient from "../../core/Client.js";
-import { BaseContext, PermissionLevel } from "../../types/index.js";
 
-/**
- * Команда reboot - перезагружает бот процесс
- */
-export default class RebootCommand extends Command {
+export default class RebootCommand extends BaseCommand {
 	constructor(client: BotClient) {
 		super(client, {
 			name: "reboot",
@@ -20,7 +12,7 @@ export default class RebootCommand extends Command {
 			enabled: true,
 			location: null,
 			description: "Перезагрузить бота",
-			permission: PermissionLevel.Owner,
+			permission: EPermissionLevel.Owner,
 			aliases: ["r", "restart"],
 		});
 	}

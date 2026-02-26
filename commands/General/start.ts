@@ -1,10 +1,11 @@
 import { Keyboard } from "grammy";
-import BotClient from "../../core/Client.js";
-import Command from "../../core/structures/Command.js";
-import { CallbackContext, PermissionLevel } from "../../types/index.js";
-import { User } from "../../models/index.js";
+import type BotClient from "@core/Client.js";
+import { BaseCommand } from "@core/structures/BaseCommand.js";
+import { type CallbackContext, EPermissionLevel } from "@app-types/index.js";
+import { User } from "@models/index.js";
 
-export default class extends Command {
+
+export default class extends BaseCommand {
 	public client: BotClient;
 
 	constructor(client: BotClient) {
@@ -16,7 +17,7 @@ export default class extends Command {
 			enabled: true,
 			location: null,
 			description: "",
-			permission: PermissionLevel.User,
+			permission: EPermissionLevel.User,
 			showInMenu: false,
 		});
 		this.client = client;
@@ -26,7 +27,7 @@ export default class extends Command {
 		await ctx.msg?.delete();
 		const mainMenu = this.client.menuManager.menus.get("main-menu");
 		if (!mainMenu) {
-			await ctx.reply(ctx.t("main-menu-not-found"));
+			await ctx.reply(ctx.t("main-menu.not-found"));
 			return;
 		}
 
@@ -34,10 +35,17 @@ export default class extends Command {
 		mainMenu.buttons.forEach((b) => {
 			keyboard.text(ctx.resolveText(b.text)).row();
 		});
-		keyboard.text(ctx.t("main-menu-button-commands")).row();
+		keyboard.text(ctx.t("main-menu.button-commands")).row();
 
-		const user = await User.findOne({ telegram_id: ctx.from?.id });
-		if (!user) User.create({ telegram_id: ctx.from?.id, name: ctx.from?.first_name });
+		if (ctx.from) {
+			const user = await User.findOne({ telegram_id: ctx.from.id });
+			if (!user) {
+				await User.create({
+					telegram_id: ctx.from.id,
+					language: await ctx.i18n.getLocale(),
+				});
+			}
+		}
 
 		await ctx.reply(ctx.resolveText(mainMenu.title), { reply_markup: keyboard.resized().persistent(true) });
 		return;

@@ -1,45 +1,52 @@
-import { CallbackContext, WizardScene } from "../types/index.js";
-import { UtilitiesReading } from "../models/index.js";
+import { type CallbackContext, type TStepHandler } from "@app-types/index.js";
+import type BotClient from "@core/Client.js";
+import { BaseScene } from "@core/structures/index.js";
+import { UtilitiesReading } from "@models/index.js";
 
-const deleteReadingScene: WizardScene<CallbackContext> = {
-	name: "delete-reading",
-	steps: [
-		// Шаг 1: Подтверждение удаления
-		async (ctx) => {
-			const readingId = ctx.wizard.state.readingId;
-			if (!readingId) {
-				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Ошибка: не удалось определить показание для удаления.");
-				return ctx.scene.leave();
-			}
 
-			const reading = await UtilitiesReading.findById(readingId);
-			if (!reading) {
-				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Ошибка: не удалось найти показание в БД для удаления.");
-				return ctx.scene.leave();
-			}
+export default class DeleteReadingScene extends BaseScene {
+	constructor(client: BotClient) {
+		super(client, "delete-reading");
+	}
 
-			ctx.wizard.state.accountId = reading.account_id;
+	get steps(): TStepHandler[] {
+		return [
+			this.askDeletion,
+			this.handleDeletion,
+		];
+	}
 
-			await ctx.scene.confirmOrCancel(ctx, `Вы уверены, что хотите удалить показания за ${reading.month}.${reading.year}?`);
-			return ctx.wizard.next();
-		},
-		// Шаг 2: Обработка решения
-		async (ctx) => {
+	private askDeletion = async (ctx: CallbackContext) => {
+		const readingId = ctx.wizard.state.readingId;
+		if (!readingId) {
+			return this.abort(ctx, "❌ Ошибка: не удалось определить показание для удаления.");
+		}
+
+		const reading = await UtilitiesReading.findById(readingId);
+		if (!reading) {
+			return this.abort(ctx, "❌ Ошибка: не удалось найти показания в БД для удаления.");
+		}
+
+		ctx.wizard.state.accountId = reading.account_id;
+
+		await ctx.scene.confirmOrCancel(ctx, `Вы уверены, что хотите удалить показания за ${reading.month}.${reading.year}?`);
+		return ctx.wizard.next();
+	}
+
+	private handleDeletion = async (ctx: CallbackContext) => {
+		const readingId = ctx.wizard.state.readingId;
+		if (await this.checkCancel(ctx, "❌ Удаление отменено.", `reading-${readingId}`)) return;
+		if (ctx.callbackQuery?.data === "confirm") {
+			await UtilitiesReading.findByIdAndDelete(readingId);
+
 			const accountId = ctx.wizard.state.accountId;
-			if (ctx.callbackQuery?.data === "cancel") {
-				await ctx.scene.cancelDeleting(ctx, accountId ? `readings-${accountId}` : "utilities-menu");
-				return ctx.scene.leave();
-			}
+			const parentMenu = `readings-${accountId}`;
+			const deletedMenu = `reading-${readingId}`;
 
-			if (ctx.callbackQuery?.data === "confirm") {
-				const readingId = ctx.wizard.state.readingId;
-				await UtilitiesReading.findByIdAndDelete(readingId);
-				await ctx.scene.backToMenu(ctx, "✅ Показания успешно удалены", accountId ? `readings-${accountId}` : "utilities-menu");
-				return ctx.scene.leave();
-			}
-			return
-		},
-	],
+			ctx.services.menuManager.cleanupForDeletion(ctx, deletedMenu, parentMenu);
+
+			return this.abort(ctx, "✅ Показания успешно удалены.", parentMenu);
+		}
+		return
+	}
 };
-
-export default deleteReadingScene;

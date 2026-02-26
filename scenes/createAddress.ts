@@ -1,66 +1,73 @@
-import { CallbackContext, WizardScene } from "../types/index.js";
-import { Address, UserAddress } from "../models/index.js";
+import type { CallbackContext, TStepHandler } from "@app-types/index.js";
+import { BaseScene } from "@structures/index.js";
+import { Address, UserAddress } from "@models/index.js";
 import { InlineKeyboard } from "grammy";
+import type BotClient from "@core/Client";
 
 const cancelBtn = new InlineKeyboard().text("Отмена", "cancel");
 
-const createAddressScene: WizardScene<CallbackContext> = {
-	name: "create-address",
-	steps: [
-		// Шаг 0: запрос адреса
-		async (ctx) => {
-			ctx.wizard.state.message = ctx.callbackQuery?.message;
-			await ctx.callbackQuery?.message?.editText(
-				"Введите адрес строкой (например: г. Киев, ул. Крещатик, д. 1, кв. 10):",
-				{
-					reply_markup: cancelBtn,
-				},
-			);
-			await ctx.wizard.next();
-		},
+export default class CreateAddressScene extends BaseScene {
+	constructor(client: BotClient) {
+		super(client, "create-address");
+	}
 
-		// Шаг 1: сохранение адреса
-		async (ctx) => {
-			if (ctx.callbackQuery?.data === "cancel") {
-				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Создание адреса отменено.");
-				return ctx.scene.leave();
-			}
+	get steps(): TStepHandler[] {
+		return [
+			this.askAddress,
+			this.handleAddress,
+		]
+	}
 
-			if (!ctx.msg?.text) {
-				await ctx.wizard.state?.message?.editText("❌ Пожалуйста, введите адрес строкой.", { reply_markup: cancelBtn });
-				return
-			}
+	/**
+	 * Шаг 0: Инициализация ввода адреса.
+	 *
+	 * Метод сохраняет текущее сообщение (из которого был вызван callback) в состояние сцены,
+	 * чтобы в дальнейшем редактировать его при ошибках или успешном завершении.
+	 * Затем изменяет текст сообщения на запрос ввода адреса и переводит визард на следующий шаг.
+	 *
+	 * @param ctx - Контекст выполнения, содержащий информацию о callback-запросе и состоянии сцены.
+	 * @returns Promise<void> - Возвращает результат перехода к следующему шагу.
+	 */
+	private askAddress = async (ctx: CallbackContext) => {
+		ctx.wizard.state.message = ctx.callbackQuery?.message;
+		if (!ctx.wizard.state.message) return
+		const title = "Введите адрес строкой (например: г. Киев, ул. Крещатик, д. 1, кв. 10):"
+		await ctx.wizard.state.message.editText(title, { reply_markup: cancelBtn });
+		return ctx.wizard.next();
+	}
 
-			const addressName = ctx.msg.text;
-			await ctx.msg.delete().catch(() => { });
+	// Шаг 1: сохранение адреса
+	private handleAddress = async (ctx: CallbackContext) => {
+		if (await this.checkCancel(ctx, "❌ Создание адреса отменено.")) return;
 
-			const telegramId = ctx.from?.id;
-			if (!telegramId) {
-				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Ошибка: не удалось получить ваш Telegram ID.");
-				return ctx.scene.leave();
-			}
+		if (!ctx.msg?.text) {
+			await ctx.wizard.state?.message?.editText("❌ Пожалуйста, введите адрес строкой.", { reply_markup: cancelBtn });
+			return
+		}
 
-			try {
-				let address = await Address.findOne({ name: addressName });
-				if (!address) {
-					address = await Address.create({
-						name: addressName,
-					});
-				}
+		const addressName = ctx.msg.text;
+		await ctx.msg.delete().catch(() => { });
 
-				await UserAddress.create({
-					telegram_id: telegramId,
-					address_id: address._id,
+		const telegramId = ctx.from?.id;
+		if (!telegramId) return this.abort(ctx, "❌ Ошибка: не удалось получить ваш Telegram ID.");
+
+		try {
+			let address = await Address.findOne({ name: addressName });
+			if (!address) {
+				address = await Address.create({
+					name: addressName,
 				});
-				
-				await ctx.scene.backToUtilitiesMenu(ctx, `✅ Адрес 🏠 ${addressName} успешно добавлен.`);
-			} catch (error) {
-				console.error(error);
-				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Ошибка при добавлении адреса.");
 			}
-			return ctx.scene.leave();
-		},
-	],
-};
 
-export default createAddressScene;
+			await UserAddress.create({
+				telegram_id: telegramId,
+				address_id: address._id,
+			});
+
+			return this.abort(ctx, `✅ Адрес 🏠 ${addressName} успешно добавлен.`, "utilities-menu");
+		} catch (error) {
+			console.error(error);
+			return this.handleError(ctx, error, "❌ Ошибка при добавлении адреса.");
+		}
+	}
+};

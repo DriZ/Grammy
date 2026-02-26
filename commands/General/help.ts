@@ -1,9 +1,10 @@
-import Command from "../../core/structures/Command.js";
-import type BotClient from "../../core/Client.js";
-import { BaseContext, PermissionLevel } from "../../types/index.js";
-import config from "../../config.js";
+import { BaseCommand } from "@structures/index.js";
+import type BotClient from "@core/Client.js";
+import { type BaseContext, EPermissionLevel, type TPermissionLevel } from "@app-types/index.js";
+import config from "@root/config.js";
 
-export default class HelpCommand extends Command {
+
+export default class HelpCommand extends BaseCommand {
 	constructor(client: BotClient) {
 		super(client, {
 			name: "help",
@@ -11,7 +12,7 @@ export default class HelpCommand extends Command {
 			category: "General",
 			usage: "/help [команда] или /help [страница]",
 			aliases: ["h", "помощь"],
-			permission: PermissionLevel.User,
+			permission: EPermissionLevel.User,
 		});
 	}
 
@@ -43,8 +44,8 @@ export default class HelpCommand extends Command {
 
 			const permLevel = command.config.permission;
 			let permText = "Все";
-			if (permLevel === PermissionLevel.Admin) permText = "Администратор";
-			if (permLevel === PermissionLevel.Owner) permText = "Владелец";
+			if (permLevel === EPermissionLevel.Admin) permText = "Администратор";
+			if (permLevel === EPermissionLevel.Owner) permText = "Владелец";
 			info += `🔒 **Доступ:** ${permText}`;
 
 			await ctx.reply(info, { parse_mode: "Markdown" });
@@ -60,9 +61,9 @@ export default class HelpCommand extends Command {
 		const isAdmin = config.admins && config.admins.includes(userId || 0);
 
 		// Определяем уровень прав пользователя
-		let userPerm = PermissionLevel.User;
-		if (isAdmin) userPerm = PermissionLevel.Admin;
-		if (isOwner) userPerm = PermissionLevel.Owner;
+		let userPerm: TPermissionLevel = EPermissionLevel.User;
+		if (isAdmin) userPerm = EPermissionLevel.Admin;
+		if (isOwner) userPerm = EPermissionLevel.Owner;
 
 		// Получаем все команды и фильтруем по правам
 		const commands = Array.from(this.client.commandManager.commands.values()).filter(

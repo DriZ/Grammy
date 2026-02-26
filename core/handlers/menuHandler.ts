@@ -5,23 +5,20 @@
  * Управляет обработкой событий и отображением интерактивных меню
  */
 
-import type { CallbackContext, Menu, MenuButton } from "../../types/index.js";
-import BotClient from "../Client.js";
+import type { CallbackContext, IMenu, IMenuButton } from "@app-types/index.js";
+import type BotClient from "@core/Client.js";
 import { InlineKeyboard } from "grammy";
-import { Account, Address, Tariff, UtilitiesReading } from "../../models/index.js";
-import {
-	makeAccountMenu,
-	makeAddressMenu,
-	makeReadingMenu,
-	makeReadingsMenu,
-	makeTariffMenu,
-} from "../../menus/utility-menus.js";
-import MenuManager from "../managers/MenuManager.js";
+import { Account, Address, Tariff, UtilitiesReading } from "@models/index.js";
+import { AccountMenu } from "@menus/accountMenus.js";
+import { AddressMenu } from "@menus/addressMenus.js";
+import { ReadingsMenu, ReadingMenu } from "@menus/readingMenus.js";
+import { TariffMenu, TariffsMenu } from "@menus/tariffMenus.js";
+import { MenuManager } from "@managers/index.js";
 
 /**
  * Обработчик меню
  */
-export default class MenuHandler {
+export class MenuHandler {
 	private client: BotClient;
 	private menuManager: MenuManager;
 
@@ -38,13 +35,58 @@ export default class MenuHandler {
 	 * Инициализация слушателей событий
 	 */
 	init() {
+		// Настраиваем резолвер для динамических меню
+		this.menuManager.dynamicMenuResolver = async (ctx, menuId) => {
+			const match = menuId.match(/^(readings|address|account|reading|tariff)-([a-fA-F0-9]{24})(?:-(\d+))?$/);
+			if (!match) return null;
+
+			const [, prefix, id, yearStr] = match;
+			let newMenu: IMenu | null = null;
+
+			try {
+				switch (prefix) {
+					case "address":
+						if (await Address.findById(id)) newMenu = new AddressMenu(this.client, id);
+						break;
+					case "account":
+						const account = await Account.findById(id);
+						if (account)
+							newMenu = new AccountMenu(this.client, id, account.address_id.toString());
+						break;
+					case "readings":
+						const year = yearStr ? parseInt(yearStr, 10) : undefined;
+						const readingsAccount = await Account.findById(id);
+						if (readingsAccount)
+							newMenu = new ReadingsMenu(this.client, id, year);
+						break;
+					case "reading":
+						const reading = await UtilitiesReading.findById(id);
+						if (reading)
+							newMenu = new ReadingMenu(this.client, id, reading.account_id.toString());
+						break;
+					case "tariffs":
+						const tariffsAccount = await Account.findById(id);
+						if (tariffsAccount)
+							newMenu = new TariffsMenu(this.client, id);
+						break;
+					case "tariff":
+						const tariff = await Tariff.findById(id);
+						if (tariff) newMenu = new TariffMenu(this.client, id, tariff.account_id.toString());
+						break;
+				}
+			} catch (error) {
+				console.error(`❌ Ошибка при создании меню "${menuId}":`, error);
+			}
+			return newMenu;
+		};
+
 		// Централизованный обработчик для всех текстовых сообщений, чтобы ловить нажатия Reply-кнопок
 		this.client.on("message:text", async (ctx, next) => {
 			const text = ctx.message.text;
 			let handled = false;
 
 			// 1. Проверяем специальные кнопки, которые не являются частью стандартных меню (например, "Команды")
-			if (text === ctx.t("main-menu-button-commands")) {
+			if (text === ctx.t("main-menu.button-commands")) {
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				await this.menuManager.showMenu(ctx as any, "commands-list");
 				handled = true;
@@ -145,52 +187,16 @@ export default class MenuHandler {
 				return this.menuManager.showMenu(ctx as CallbackContext, menuId);
 			}
 
-			// Если меню уже зарегистрировано, показываем его
-			if (this.menuManager.menus.has(menuId)) {
-				await ctx.answerCallbackQuery();
-				return this.menuManager.showMenu(ctx as CallbackContext, menuId);
-			}
+			// Проверяем, является ли callback идентификатором меню (статическим или динамическим)
+			const isStatic = this.menuManager.menus.has(menuId);
+			const isDynamic = /^(readings|address|account|reading|tariff)-([a-fA-F0-9]{24})(?:-(\d+))?$/.test(menuId);
 
-			// Пытаемся динамически создать меню для утилит
-			const match = menuId.match(/^(readings|address|account|reading|tariff)-([a-fA-F0-9]{24})(?:-(\d+))?$/);
-			if (match) {
-				const [, prefix, id, yearStr] = match;
-				let newMenu: Menu | null = null;
-
+			if (isStatic || isDynamic) {
 				try {
-					switch (prefix) {
-						case "address":
-							if (await Address.findById(id)) newMenu = makeAddressMenu(id);
-							break;
-						case "account":
-							const account = await Account.findById(id);
-							if (account)
-								newMenu = makeAccountMenu(id, account.address_id.toString());
-							break;
-						case "readings":
-							const year = yearStr ? parseInt(yearStr, 10) : undefined;
-							const acc = await Account.findById(id);
-							if (acc)
-								newMenu = makeReadingsMenu(id, year);
-							break;
-						case "reading":
-							const reading = await UtilitiesReading.findById(id);
-							if (reading)
-								newMenu = makeReadingMenu(id, reading.account_id.toString());
-							break;
-						case "tariff":
-							const tariff = await Tariff.findById(id);
-							if (tariff) newMenu = makeTariffMenu(id, tariff.account_id.toString());
-							break;
-					}
 					await ctx.answerCallbackQuery();
-
-					if (newMenu) {
-						this.menuManager.registerMenu(menuId, newMenu);
-						return this.menuManager.showMenu(ctx as CallbackContext, menuId);
-					}
-				} catch (error) {
-					console.error(`❌ Ошибка при динамическом создании меню "${menuId}":`, error);
+					return await this.menuManager.showMenu(ctx as CallbackContext, menuId);
+				} catch (e) {
+					console.error(`Ошибка при открытии меню ${menuId}:`, e);
 				}
 			}
 
@@ -198,9 +204,9 @@ export default class MenuHandler {
 		});
 	}
 
-	registerMenuHandlers(menu: Menu) {
+	registerMenuHandlers(menu: IMenu) {
 		if (menu.buttons && Array.isArray(menu.buttons)) {
-			menu.buttons.forEach((btn: MenuButton) => {
+			menu.buttons.forEach((btn: IMenuButton) => {
 				if (menu.inline) {
 					// Inline кнопки
 					this.client.callbackQuery(btn.callback, async (ctx) => {

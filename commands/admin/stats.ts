@@ -1,7 +1,7 @@
-import Command from "../../core/structures/Command.js";
-import type BotClient from "../../core/Client.js";
-import { BaseContext, PermissionLevel } from "../../types/index.js";
-import { UserAddress } from "../../models/index.js";
+import { BaseCommand } from "@structures/index.js";
+import type BotClient from "@core/Client.js";
+import { type BaseContext, EPermissionLevel } from "@app-types/index.js";
+import { UserAddress } from "@models/index.js";
 
 /**
  * Форматирует миллисекунды в читаемую строку (дни, часы, минуты, секунды).
@@ -23,13 +23,13 @@ function formatDuration(ms: number): string {
 	);
 }
 
-export default class StatsCommand extends Command {
+export default class StatsCommand extends BaseCommand {
 	constructor(client: BotClient) {
 		super(client, {
 			name: "stats",
 			description: "Показать статистику бота.",
 			category: "Owner",
-			permission: PermissionLevel.Owner,
+			permission: EPermissionLevel.Owner,
 		});
 	}
 

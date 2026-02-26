@@ -8,10 +8,10 @@
  * 3. Самодокументирующийся код
  */
 
-import type { BotConfig } from "./types/index.js";
+import { EPermissionLevel, type IBotConfig } from "@app-types/index.js";
 
 // Создаём конфигурацию с явным типом
-const config: BotConfig = {
+const config: IBotConfig = {
 	// ID владельца бота (из переменной окружения)
 	owner: process.env.BOT_OWNER_ID ? parseInt(process.env.BOT_OWNER_ID) : null,
 
@@ -22,10 +22,10 @@ const config: BotConfig = {
 
 	// Уровни доступа
 	permissions: {
-		EVERYONE: 0,
-		ADMIN: 1,
-		OWNER: 2,
-	},
+		User: EPermissionLevel.User,
+		Admin: EPermissionLevel.Admin,
+		Owner: EPermissionLevel.Owner
+	}
 };
 
 export default config;

@@ -1,41 +1,49 @@
-import { CallbackContext, WizardScene } from "../types/index.js";
-import { Account } from "../models/index.js";
+import type { CallbackContext, TStepHandler } from "@app-types/index.js";
+import { Account } from "@models/index.js";
 import { deleteAccount } from "../dbServices/index.js";
+import { BaseScene } from "@core/structures/BaseScene.js";
+import type BotClient from "@core/Client.js";
 
 
-const deleteAccountScene: WizardScene<CallbackContext> = {
-	name: "delete-account",
-	steps: [
-		async (ctx) => {
+export default class deleteAccountScene extends BaseScene {
+	constructor(client: BotClient) {
+		super(client, "delete-account");
+	}
+
+	get steps(): TStepHandler[] {
+		return [
+			this.askDeletion,
+			this.handleDeletion,
+		];
+	}
+
+	private askDeletion = async (ctx: CallbackContext) => {
+		const accountId = ctx.wizard.state.accountId;
+		if (!accountId) return this.abort(ctx, "❌ Ошибка: не удалось определить счёт для удаления.");
+
+		const account = await Account.findById(accountId);
+		if (!account) return this.abort(ctx, "❌ Ошибка: не удалось найти счёт в БД для удаления.");
+		ctx.wizard.state.addressId = account.address_id.toString();
+
+		await ctx.scene.confirmOrCancel(ctx, `Вы уверены, что хотите удалить счёт ${account.account_number}?`)
+		return ctx.wizard.next();
+	}
+
+	private handleDeletion = async (ctx: CallbackContext) => {
+		if (await this.checkCancel(ctx, "❌ Удаление отменено.", `account-${ctx.wizard.state.accountId}`)) return;
+
+		if (ctx.callbackQuery?.data === "confirm") {
 			const accountId = ctx.wizard.state.accountId;
-			if (!accountId) {
-				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Ошибка: не удалось определить счёт для удаления.");
-				return ctx.scene.leave();
-			}
+			const addressId = ctx.wizard.state.addressId;
+			await deleteAccount(accountId);
 
-			const account = await Account.findById(accountId);
-			if (!account) {
-				await ctx.scene.backToUtilitiesMenu(ctx, "❌ Ошибка: не удалось найти счёт в БД для удаления.");
-				return ctx.scene.leave();
-			}
+			const parentMenu = `address-${addressId}`;
+			const deletedMenu = `account-${accountId}`;
 
-			await ctx.scene.confirmOrCancel(ctx, `Вы уверены, что хотите удалить счёт ${account.account_number}?`)
-			return ctx.wizard.next();
-		},
-		async (ctx) => {
-			if (ctx.callbackQuery?.data === "cancel") {
-				await ctx.scene.cancelDeleting(ctx);
-				return ctx.scene.leave();
-			}
-			if (ctx.callbackQuery?.data === "confirm") {
-				const accountId = ctx.wizard.state.accountId;
-				await deleteAccount(accountId);
-				await ctx.scene.backToUtilitiesMenu(ctx, "✅ Счёт и все связанные данные успешно удалёны.");
-				return ctx.scene.leave();
-			}
-			return
-		},
-	],
+			ctx.services.menuManager.cleanupForDeletion(ctx, deletedMenu, parentMenu);
+
+			return this.abort(ctx, "✅ Счёт и все связанные данные успешно удалёны.", parentMenu);
+		}
+		return
+	}
 };
-
-export default deleteAccountScene;
