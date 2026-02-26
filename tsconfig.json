@@ -51,5 +51,5 @@
 		}
 	},
 	"include": ["**/*.ts"],
-	"exclude": ["node_modules", "dist", "ecosystem.config.cjs"]
+	"exclude": ["node_modules", "dist", "ecosystem.config.js"]
 }
