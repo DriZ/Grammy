@@ -19,6 +19,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Загружаем переменные окружения, включая PATH для Node.js, npm и pm2
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             # Переходим в директорию проекта
             cd ${{ secrets.PROJECT_PATH }}
             # Получаем последние изменения из ветки main
