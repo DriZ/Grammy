@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/DriZ/Grammy/compare/v1.1.5...v1.2.0) (2026-03-01)
+
+
+### Features
+
+* release v1.2.0 - абонплата, валюты, новые ресурсы и команда /version ([4d3f800](https://github.com/DriZ/Grammy/commit/4d3f80080b2e6353b9ee36ec229ee61b1d14392e))
+
 ### [1.1.5](https://github.com/DriZ/Grammy/compare/v1.1.4...v1.1.5) (2026-02-26)
 
 
