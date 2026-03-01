@@ -96,35 +96,40 @@ export abstract class BaseCommand {
 	 */
 	async reload(ctx?: BaseContext | SessionContext | CallbackContext): Promise<void> {
 		// Отправляем сообщение о начале перезагрузки
-		const msg = ctx ? await ctx.reply("♻️ Перезагрузка команды...") : null;
+		const msg = ctx ? await ctx.reply(ctx.t("command.reloading")) : null;
 
 		// Задержка для визуального эффекта
 		await this.client.utils.sleep(500);
 
 		const commandPath = this.config.location;
 		if (!commandPath) {
-			if (msg && ctx) {
-				await ctx.editMessageText(
-					"❌ Не удалось перезагрузить команду: путь к файлу не найден.",
-				);
-			}
+			if (msg && ctx) await ctx.editMessageText(ctx.t("error.command-path-not-found"));
 			throw new Error(`Cannot reload command ${this.info.name}: file path not found.`);
 		}
 
 		// Выгружаем команду
 		await this.client.utils.sleep(500);
 		if (msg && ctx) {
-			await ctx.editMessageText("♻️ Выгружаю команду...");
+			await ctx.editMessageText(ctx.t("command.unload"));
 		}
 		this.client.commandManager.unloadCommand(this.info.name);
 
 		// Загружаем команду заново
 		await this.client.utils.sleep(500);
 		if (msg && ctx) {
-			await ctx.editMessageText("♻️ Выгружено. Загружаю команду...");
+			await ctx.editMessageText(ctx.t("command.load"));
 		}
-		await this.client.commandManager.loadCommand(commandPath);
 
-		console.log(`✅ Command reloaded: ${this.info.name}`);
+    try {
+		  await this.client.commandManager.loadCommand(commandPath);
+      if (msg && ctx) {
+        await ctx.editMessageText(ctx.t("command.reloaded"));
+      }
+    } catch (error) {
+      if (msg && ctx) {
+        await ctx.editMessageText(ctx.t("error.command-reload-failed"));
+      }
+      throw error;
+    }
 	}
 }

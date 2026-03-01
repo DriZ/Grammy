@@ -121,8 +121,6 @@ DATABASE_URL=postgresql://user:password@localhost:5432/telegraf
 
 - **grammy** - Основной фреймворк для работы с Telegram Bot API.
 - **@grammyjs/hydrate** - плагин для улучшения контекста.
-- **sequelize** - ORM для БД.
-- **axios** - HTTP клиент.
 - **dotenv** - Загрузка переменных окружения.
 - **TypeScript** - Статическая типизация.
 

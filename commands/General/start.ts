@@ -1,4 +1,4 @@
-import { Keyboard } from "grammy";
+import { InlineKeyboard } from "grammy";
 import type BotClient from "@core/Client.js";
 import { BaseCommand } from "@core/structures/BaseCommand.js";
 import { type CallbackContext, EPermissionLevel } from "@app-types/index.js";
@@ -31,10 +31,12 @@ export default class extends BaseCommand {
 			return;
 		}
 
-		const keyboard = new Keyboard();
-		mainMenu.buttons.forEach((b) => {
-			keyboard.text(ctx.resolveText(b.text)).row();
-		});
+		const keyboard = new InlineKeyboard();
+		const buttons = typeof mainMenu.buttons === "function" ? await mainMenu.buttons(ctx) : mainMenu.buttons;
+		for (const b of buttons) {
+      const buttonText = await ctx.resolveText(b.text);
+      keyboard.text(buttonText, b.callback || b.nextMenu || "noop").row();
+    }
 		keyboard.text(ctx.t("main-menu.button-commands")).row();
 
 		if (ctx.from) {
@@ -47,7 +49,7 @@ export default class extends BaseCommand {
 			}
 		}
 
-		await ctx.reply(ctx.resolveText(mainMenu.title), { reply_markup: keyboard.resized().persistent(true) });
+		await ctx.reply(await ctx.resolveText(mainMenu.title), { reply_markup: keyboard, parse_mode: "Markdown" });
 		return;
 	}
 }

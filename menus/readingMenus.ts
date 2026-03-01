@@ -1,139 +1,93 @@
 import { Account, UtilitiesReading } from "@models/index.js";
-import { type CallbackContext, EResource } from "@app-types/index.js";
-import { InlineKeyboard } from "grammy";
+import { type CallbackContext, EResource, type IMenuButton, type ZoneReading } from "@app-types/index.js";
 import { BaseMenu } from "@structures/index.js";
 import type BotClient from "@core/Client.js";
 
 
 export class ReadingsMenu extends BaseMenu {
-	constructor(client: BotClient, private accountId: string, private year?: number) {
-		super(client, year ? `readings-${accountId}-${year}` : `readings-${accountId}`);
-	}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(client: BotClient, private accountId: string, private year: number, private readings: any[]) {
+    super(client, `readings-${accountId}-${year}`);
+  }
 
-	get title() {
-		return "📊 Показания";
-	}
+  get title() {
+    return async (ctx: CallbackContext) => {
+      const account = await Account.findById(this.accountId);
+      if (!account) return ctx.t("error.account-not-found");
 
-	async execute(ctx: CallbackContext) {
-		let selectedYear = this.year;
-		if (!selectedYear) {
-			const latestReading = await UtilitiesReading.findOne({ account_id: this.accountId }).sort({ year: -1 });
-			selectedYear = latestReading ? latestReading.year : new Date().getFullYear();
-		}
+      // Расчет годового потребления
+      let consumptionText = "";
+      const prevYearDecReading = await UtilitiesReading.findOne({
+        account_id: this.accountId,
+        year: this.year - 1,
+        month: 12,
+      });
 
-		const readings = await UtilitiesReading.find({
-			account_id: this.accountId,
-			year: selectedYear
-		}).sort({
-			month: -1,
-		});
-		const keyboard = new InlineKeyboard();
+      // Берем последнее показание из текущего списка (так как он отсортирован по убыванию месяца)
+      const latestReadingInSelectedYear = this.readings[0];
 
-		// Расчет годового потребления
-		let consumptionText = "";
-		const prevYearDecReading = await UtilitiesReading.findOne({
-			account_id: this.accountId,
-			year: selectedYear - 1,
-			month: 12,
-		});
+      if (prevYearDecReading && latestReadingInSelectedYear) {
+        let totalConsumption = 0;
+        for (const currentZone of latestReadingInSelectedYear.zones) {
+          const prevZone = prevYearDecReading.zones.find((z: ZoneReading) => z.name === currentZone.name);
+          if (prevZone) {
+            const consumption = currentZone.value - prevZone.value;
+            if (consumption >= 0) {
+              totalConsumption += consumption;
+            }
+          }
+        }
 
-		const latestReadingInSelectedYear = await UtilitiesReading.findOne({
-			account_id: this.accountId,
-			year: selectedYear,
-		}).sort({ month: -1 });
+        if (totalConsumption > 0) {
+          const unit = account.unit || EResource[account.resource].units[0];
 
-		if (prevYearDecReading && latestReadingInSelectedYear) {
-			let totalConsumption = 0;
-			for (const currentZone of latestReadingInSelectedYear.zones) {
-				const prevZone = prevYearDecReading.zones.find((z) => z.name === currentZone.name);
-				if (prevZone) {
-					const consumption = currentZone.value - prevZone.value;
-					if (consumption >= 0) {
-						totalConsumption += consumption;
-					}
-				}
-			}
+          consumptionText = ` | ${ctx.t("readings-menu.consumption")}: ${totalConsumption.toFixed(0)} ${unit}`;
+        }
+      }
 
-			if (totalConsumption > 0) {
-				const account = await Account.findById(this.accountId);
-				if (account) {
-					const unit = account.resource === "electricity" ? "кВт·ч" : "м³";
-					consumptionText = ` | Потребление: ${totalConsumption.toFixed(0)} ${unit}`;
-				}
-			}
-		}
+      return `${ctx.t("readings-menu.title", { year: this.year })} (${EResource[account.resource].emoji ?? ""} №${account.account_number})${consumptionText}`;
+    };
+  }
 
-		if (readings.length > 0) {
-			readings.forEach((r) => {
-				ctx.services.menuManager.registerMenu(
-					`reading-${r._id.toString()}`,
-					new ReadingMenu(this.client, r._id.toString(), this.accountId),
-				);
+  get buttons(): IMenuButton[] {
+    const btns: IMenuButton[] = [];
 
-				// формируем строку из зон
-				const zonesStr = r.zones.map((z) => `${z.name}: ${z.value}`).join(", ");
-				keyboard
-					.text(
-						`${r.month.toString().padStart(2, "0")}.${r.year} → ${zonesStr}`,
-						`reading-${r._id}`,
-					)
-					.row();
-			});
-		}
+    this.readings.forEach((r) => {
+      const zonesStr = r.zones.map((z: ZoneReading) => `${z.name}: ${z.value}`).join(", ");
+      btns.push({
+        text: `${r.month.toString().padStart(2, "0")}.${r.year} → ${zonesStr}`,
+        nextMenu: `reading-${r._id}`,
+        callback: `reading-${r._id}`,
+        row: true,
+      });
+    });
 
-		// Пагинация по годам
-		keyboard
-			.text(`⬅️ ${selectedYear - 1}`, `readings-${this.accountId}-${selectedYear - 1}`)
-			.text(`📅 ${selectedYear}`, `readings-${this.accountId}-${selectedYear}`)
-			.text(`${selectedYear + 1} ➡️`, `readings-${this.accountId}-${selectedYear + 1}`)
-			.row();
+    // Пагинация по годам
+    btns.push({ text: `⬅️ ${this.year - 1}`, nextMenu: `readings-${this.accountId}-${this.year - 1}`, callback: `readings-${this.accountId}-${this.year - 1}`, skipHistory: true });
+    btns.push({ text: `📅 ${this.year}`, callback: "noop" });
+    btns.push({ text: `${this.year + 1} ➡️`, nextMenu: `readings-${this.accountId}-${this.year + 1}`, callback: `readings-${this.accountId}-${this.year + 1}`, row: true, skipHistory: true });
+    btns.push({ text: (ctx) => ctx.t("button.create-reading"), callback: `create-reading-${this.accountId}`, row: true, style: "success" });
 
-		keyboard.text("➕ Добавить показания", `create-reading-${this.accountId}`).row();
-		keyboard.text("⬅️ Назад", `menu-back`);
-
-		const account = await Account.findById(this.accountId);
-		if (!account) {
-			throw new Error(`Счёт с id ${this.accountId} не найден`);
-		}
-		const title = `📊 Показания за ${selectedYear} год (${EResource[account.resource].emoji ?? ""
-			} №${account.account_number})${consumptionText}`;
-
-		if (ctx.callbackQuery) {
-			await ctx.callbackQuery.message?.editText(title, { reply_markup: keyboard });
-		} else {
-			await ctx.reply(title, { reply_markup: keyboard });
-		}
-	}
+    return btns;
+  }
 }
 
 export class ReadingMenu extends BaseMenu {
-	constructor(client: BotClient, private readingId: string, private accountId: string) {
-		super(client, `reading-${readingId}`);
-	}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(client: BotClient, private readingId: string, private reading: any) {
+    super(client, `reading-${readingId}`);
+  }
 
-	get title() {
-		return "📊 Показание";
-	}
+  get title() {
+    return async (ctx: CallbackContext) => {
+      const zonesStr = this.reading.zones.map((z: ZoneReading) => `${z.name}: ${z.value}`).join("\n");
+      return `${ctx.t("reading-menu.reading-for")} ${this.reading.month}.${this.reading.year}:\n${zonesStr}`;
+    };
+  }
 
-	async execute(ctx: CallbackContext) {
-		const reading = await UtilitiesReading.findById(this.readingId);
-
-		if (!reading) {
-			await ctx.reply("❌ Показание не найдено");
-			return;
-		}
-
-		// формируем строку из зон
-		const zonesStr = reading.zones.map((z) => `${z.name}: ${z.value}`).join("\n");
-
-		const keyboard = new InlineKeyboard()
-			.text("🗑️ Удалить показание", `delete-reading-${this.readingId}`).danger()
-			.row()
-			.text("⬅️ Назад", `menu-back`);
-
-		const title = `📊 Показание за ${reading.month}.${reading.year}:\n${zonesStr}`;
-
-		if (ctx.callbackQuery) await ctx.callbackQuery.message?.editText(title, { reply_markup: keyboard });
-		else await ctx.reply(title, { reply_markup: keyboard });
-	}
+  get buttons(): IMenuButton[] {
+    return [
+      { text: (ctx) => ctx.t("button.delete-reading"), callback: `delete-reading-${this.readingId}`, style: "danger", row: true }
+    ];
+  }
 }

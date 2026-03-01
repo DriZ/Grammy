@@ -27,14 +27,14 @@ export default class DeleteReadingScene extends BaseScene {
 			return this.abort(ctx, "❌ Ошибка: не удалось найти показания в БД для удаления.");
 		}
 
-		ctx.wizard.state.accountId = reading.account_id;
+		ctx.wizard.state.accountId = reading.account_id.toString();
 
-		await ctx.scene.confirmOrCancel(ctx, `Вы уверены, что хотите удалить показания за ${reading.month}.${reading.year}?`);
+		await this.confirmOrCancel(ctx, `Вы уверены, что хотите удалить показания за ${reading.month}.${reading.year}?`);
 		return ctx.wizard.next();
 	}
 
 	private handleDeletion = async (ctx: CallbackContext) => {
-		const readingId = ctx.wizard.state.readingId;
+		const readingId = ctx.wizard.state.readingId!;
 		if (await this.checkCancel(ctx, "❌ Удаление отменено.", `reading-${readingId}`)) return;
 		if (ctx.callbackQuery?.data === "confirm") {
 			await UtilitiesReading.findByIdAndDelete(readingId);

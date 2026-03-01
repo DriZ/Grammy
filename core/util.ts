@@ -8,7 +8,6 @@
  * 4. Record<K, V> - типизированный объект
  */
 
-import { ConfidentialClientApplication } from "@azure/msal-node";
 import { InlineKeyboard } from "grammy";
 
 export function makeYearMonthKeyboard(selectedYear: number): InlineKeyboard {
@@ -34,99 +33,6 @@ export function makeYearMonthKeyboard(selectedYear: number): InlineKeyboard {
 		}
 	});
 	return keyboard;
-}
-
-// ======================
-// AZURE / MICROSOFT GRAPH
-// ======================
-
-/**
- * Конфигурация Azure MSAL (Microsoft Authentication Library)
- */
-const msalConfig = {
-	auth: {
-		clientId: process.env.AZURE_CLIENT_ID || "",
-		authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}`,
-		clientSecret: process.env.AZURE_CLIENT_SECRET || "",
-	},
-};
-
-const cca = new ConfidentialClientApplication(msalConfig);
-
-/**
- * Получает токен доступа для Microsoft Graph API
- * @returns Токен доступа (строка)
- */
-export async function getToken(): Promise<string> {
-	try {
-		const response = await cca.acquireTokenByClientCredential({
-			scopes: ["https://graph.microsoft.com/.default"],
-		});
-		if (!response) {
-			throw new Error("Failed to acquire token: response is null");
-		}
-		return response.accessToken;
-	} catch (error) {
-		console.error("Ошибка при получении токена доступа:", error);
-		throw error;
-	}
-}
-
-/**
- * Получает ID элемента OneDrive по ссылке для общего доступа
- * @param accessToken - Токен доступа Microsoft Graph API
- * @param shareLink - Ссылка для общего доступа
- * @returns ID элемента OneDrive
- */
-export async function getItemId(accessToken: string, shareLink: string): Promise<string> {
-	const encodedLink = encodeURIComponent(shareLink);
-	const url = `https://graph.microsoft.com/v1.0/shares/u!${encodedLink}/driveItem`;
-
-	const response = await fetch(url, {
-		method: "GET",
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
-		},
-	});
-
-	if (!response || !response.ok) {
-		throw new Error(
-			`Ошибка при получении ID элемента: ${response?.status} ${response?.statusText}`,
-		);
-	}
-
-	// as - оператор типизации (тип assertion)
-	const data = (await response.json()) as { id: string };
-	return data.id;
-}
-
-/**
- * Читает данные из Excel файла через Microsoft Graph API
- * @param accessToken - Токен доступа
- * @param itemId - ID элемента на OneDrive
- * @param sheetName - Имя листа Excel
- * @returns Двумерный массив значений
- */
-export async function readExcel(
-	accessToken: string,
-	itemId: string,
-	sheetName: string,
-): Promise<string[][]> {
-	const url = `https://graph.microsoft.com/v1.0/me/drive/items/${itemId}/workbook/worksheets('${sheetName}')/usedRange`;
-
-	const response = await fetch(url, {
-		method: "GET",
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
-		},
-	});
-
-	if (!response.ok) {
-		throw new Error(`Ошибка при чтении Excel: ${response.status} ${response.statusText}`);
-	}
-
-	const data = (await response.json()) as { values: string[][] };
-	return data.values;
 }
 
 // ======================

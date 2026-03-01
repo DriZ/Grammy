@@ -10,7 +10,7 @@
 		"url": "git+https://github.com/DriZ/Grammy.git"
 	},
 	"scripts": {
-		"build": "tsc && tsc-alias",
+		"build": "rm -rf dist && tsc && tsc-alias",
 		"docs": "typedoc",
 		"start": "npm run build && node -r dotenv/config dist/index.js",
 		"dev": "tsx -r dotenv/config index.ts",
@@ -22,10 +22,8 @@
 	"author": "DriZ",
 	"license": "MIT",
 	"dependencies": {
-		"@azure/msal-node": "^5.0.2",
 		"@grammyjs/hydrate": "^1.6.0",
 		"@grammyjs/i18n": "^1.1.2",
-		"axios": "^1.13.4",
 		"dotenv": "^17.2.3",
 		"glob": "^13.0.5",
 		"grammy": "^1.40.0",

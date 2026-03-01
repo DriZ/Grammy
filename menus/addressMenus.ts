@@ -1,49 +1,76 @@
-import { Account, Address } from "../models/index.js";
-import { type CallbackContext, EResource } from "../types/index.js";
-import { InlineKeyboard } from "grammy";
-import { AccountMenu } from "./accountMenus.js";
+import { Address, type IAccount } from "../models/index.js";
+import { type CallbackContext, EResource, type IMenuButton } from "../types/index.js";
 import { BaseMenu } from "../core/structures/index.js";
 import type BotClient from "../core/Client.js";
 
 export class AddressMenu extends BaseMenu {
-	constructor(client: BotClient, private addressId: string) {
-		super(client, `address-${addressId}`);
-	}
+  private readonly PAGE_SIZE = 5;
 
-	get title() {
-		return "📋 Счета по адресу";
-	}
+  // Принимаем список аккаунтов в конструкторе, чтобы сформировать кнопки синхронно
+  constructor(client: BotClient, private addressId: string, private accounts: IAccount[], private page: number = 0) {
+    super(client, `address-${addressId}-${page}`);
+  }
 
-	async execute(ctx: CallbackContext) {
-		const accounts = await Account.find({ address_id: this.addressId });
-		const address = await Address.findById(this.addressId);
-		if (!address) {
-			throw new Error(`Адрес с id ${this.addressId} не найден`);
-		}
+  get title() {
+    return async (ctx: CallbackContext) => {
+      const address = await Address.findById(this.addressId);
+      return `${ctx.t("address-menu.title")} ${address?.name || "???"}:`;
+    };
+  }
 
-		const keyboard = new InlineKeyboard();
+  get buttons(): IMenuButton[] {
+    const btns: IMenuButton[] = [];
 
-		if (accounts.length > 0) {
-			accounts.forEach((acc) => {
-				const emoji = EResource[acc.resource].emoji;
+    const start = this.page * this.PAGE_SIZE;
+    const end = start + this.PAGE_SIZE;
+    const pageAccounts = this.accounts.slice(start, end);
 
-				ctx.services.menuManager.registerMenu(
-					`account-${acc._id.toString()}`,
-					new AccountMenu(this.client, acc._id.toString(), this.addressId),
-				);
-				keyboard
-					.text(`${emoji} Счёт №${acc.account_number}`, `account-${acc._id}`)
-					.row();
-			});
-		}
+    pageAccounts.forEach((acc) => {
+      const emoji = EResource[acc.resource]?.emoji || "❓";
+      btns.push({
+        text: (ctx) => `${emoji} ${ctx.t("button.account")}${acc.account_number}`,
+        nextMenu: `account-${acc._id}`,
+        callback: `account-${acc._id}`,
+        row: true,
+      });
+    });
 
-		keyboard.text("➕ Добавить счёт", `create-account-${this.addressId}`).row();
-		if (accounts.length === 0)
-			keyboard.text("🗑️ Удалить адрес", `delete-address-${this.addressId}`).danger().row();
-		keyboard.text("⬅️ Назад", "menu-back");
+    // Пагинация
+    const totalPages = Math.ceil(this.accounts.length / this.PAGE_SIZE);
+    if (totalPages > 1) {
+      if (this.page > 0) {
+        btns.push({ text: "⬅️", nextMenu: `address-${this.addressId}-${this.page - 1}`, callback: `address-${this.addressId}-${this.page - 1}`, skipHistory: true });
+      }
 
-		const title = `📋 Счета по адресу ${address.name}:`;
-		if (ctx.callbackQuery) await ctx.callbackQuery.message?.editText(title, { reply_markup: keyboard });
-		else await ctx.reply(title, { reply_markup: keyboard });
-	}
+      btns.push({ text: `${this.page + 1}/${totalPages}`, callback: "noop" });
+
+      if (this.page < totalPages - 1) {
+        btns.push({ text: "➡️", nextMenu: `address-${this.addressId}-${this.page + 1}`, callback: `address-${this.addressId}-${this.page + 1}`, row: true, skipHistory: true });
+      } else {
+        btns[btns.length - 1].row = true;
+      }
+    }
+
+    // Кнопка для расчета по всем счетам адреса
+    if (this.accounts.length > 0) {
+      btns.push({
+        text: () => "🧾 Рассчитать все счета",
+        callback: `calculate-bill-by-address-${this.addressId}`,
+        row: true,
+      });
+    }
+
+    btns.push({
+      text: (ctx) => ctx.t("button.create-account"),
+      callback: `create-account-${this.addressId}`,
+      style: "success",
+      row: true
+    });
+
+    if (this.accounts.length === 0) {
+      btns.push({ text: (ctx) => ctx.t("button.delete-address"), callback: `delete-address-${this.addressId}`, row: true, style: "danger" });
+    }
+
+    return btns;
+  }
 }

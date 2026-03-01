@@ -5,11 +5,11 @@ import type BotClient from "../core/Client.js";
 export default class MainMenu extends BaseMenu {
 	constructor(client: BotClient) {
 		super(client, "main-menu");
-		this.inline = false;
+		this.inline = true;
 	}
 
 	get title() {
-		return (ctx: BaseContext) => ctx.t("main-menu.title");
+		return async (ctx: BaseContext) => ctx.t("main-menu.title");
 	}
 
 	get buttons(): IMenuButton[] {
@@ -18,27 +18,26 @@ export default class MainMenu extends BaseMenu {
 				text: (ctx) => ctx.t("utilities-menu.title"),
 				nextMenu: "utilities-menu",
 				callback: "utilities-menu",
+        row: true,
 			},
 			{
 				text: (ctx) => ctx.t("button.change-language"),
 				callback: "language-menu",
 				nextMenu: "language-menu",
+        row: true,
 			},
 			{
 				text: (ctx) => ctx.t("main-menu.button-ping"),
 				callback: "ping",
 				action: async (ctx) => this.execCommand(ctx, "ping"),
+        row: true,
 			},
 			{
 				text: (ctx) => ctx.t("main-menu.button-whoami"),
 				callback: "whoami",
 				action: async (ctx) => this.execCommand(ctx, "whoami"),
-			},
-			{
-				text: (ctx) => ctx.t("main-menu.button-myid"),
-				callback: "myid",
-				action: async (ctx) => this.execCommand(ctx, "myid"),
-			},
+        row: true,
+			}
 		];
 	}
 

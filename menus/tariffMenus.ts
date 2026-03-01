@@ -1,73 +1,67 @@
-import { Tariff } from "../models/index.js";
-import type { CallbackContext } from "../types/index.js";
-import { InlineKeyboard } from "grammy";
+import type { CallbackContext, IMenuButton } from "../types/index.js";
 import { BaseMenu } from "../core/structures/index.js";
 import type BotClient from "../core/Client.js";
+import type { ITariff, ZoneParams } from "@models/tariff.js";
 
 export class TariffsMenu extends BaseMenu {
-	constructor(client: BotClient, private accountId: string) {
-		super(client, `tariffs-${accountId}`);
-	}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(client: BotClient, private accountId: string, private tariffs: ITariff[], private currency: string) {
+    super(client, `tariffs-${accountId}`);
+  }
 
-	get title() {
-		return "💰 Тарифы";
-	}
+  get title() {
+    return async (ctx: CallbackContext) => ctx.t("button.tariffs");
+  }
 
-	async execute(ctx: CallbackContext) {
-		const tariffs = await Tariff.find({ account_id: this.accountId }).sort({
-			startDate: -1,
-		});
-		const keyboard = new InlineKeyboard();
+  get buttons(): IMenuButton[] {
+    const btns: IMenuButton[] = [];
 
-		if (tariffs.length > 0) {
-			tariffs.forEach((t) => {
-				ctx.services.menuManager.registerMenu(
-					`tariff-${t._id.toString()}`,
-					new TariffMenu(this.client, t._id.toString(), this.accountId),
-				);
+    if (this.tariffs.length > 0) {
+      this.tariffs.forEach((t) => {
+        const month = t.startDate.getMonth() + 1;
+        const year = t.startDate.getFullYear();
+        const zonesStr = t.zones.map((z: ZoneParams) => `${z.name}: ${z.price.toLocaleString('ru-RU', { style: 'currency', currency: this.currency })}`).join(", ");
 
-				const month = t.startDate.getMonth() + 1;
-				const year = t.startDate.getFullYear();
+        btns.push({
+          text: `${month.toString().padStart(2, "0")}.${year}: ${zonesStr}`,
+          nextMenu: `tariff-${t._id}`,
+          callback: `tariff-${t._id}`,
+          row: true
+        });
+      });
+    }
 
-				const zonesStr = t.zones.map((z) => `${z.name}: ${z.price}₴`).join(", ");
-				keyboard.text(`${month.toString().padStart(2, "0")}.${year}: ${zonesStr}`, `tariff-${t._id}`).row();
-			});
-		}
+    btns.push({
+      text: (ctx) => ctx.t("button.create-tariff"),
+      callback: `create-tariff-${this.accountId}`,
+      style: "success",
+      row: true
+    });
 
-		keyboard.text("➕ Добавить тариф", `create-tariff-${this.accountId}`).row();
-		keyboard.text("⬅️ Назад", `menu-back`);
-
-		if (ctx.callbackQuery) await ctx.callbackQuery.message?.editText("💰 Тарифы:", { reply_markup: keyboard });
-		else await ctx.reply("💰 Тарифы:", { reply_markup: keyboard });
-	}
+    return btns;
+  }
 }
 
 export class TariffMenu extends BaseMenu {
-	constructor(client: BotClient, private tariffId: string, private accountId: string) {
-		super(client, `tariff-${tariffId}`);
-	}
+  constructor(client: BotClient, private tariffId: string, private tariff: ITariff, private currency: string) {
+    super(client, `tariff-${tariffId}`);
+  }
 
-	get title() {
-		return "💰 Тариф";
-	}
+  get title() {
+    return async (_ctx: CallbackContext) => {
+      const zonesStr = this.tariff.zones.map((z: ZoneParams) => `${z.name}: ${z.price.toLocaleString('ru-RU', { style: 'currency', currency: this.currency, currencyDisplay: 'symbol' })}`).join("\n");
+      return `💰 Тариф (${this.tariff.type})\n${zonesStr}\nНачало действия: ${this.tariff.startDate.toLocaleDateString('ru-RU')}`;
+    };
+  }
 
-	async execute(ctx: CallbackContext) {
-		const tariff = await Tariff.findById(this.tariffId);
-		if (!tariff) {
-			await ctx.reply("❌ Тариф не найден");
-			return;
-		}
-
-		const zonesStr = tariff.zones.map((z) => `${z.name}: ${z.price.toLocaleString('ru-RU', { style: 'currency', currency: 'UAH', currencyDisplay: 'symbol' })}`).join("\n");
-
-		const keyboard = new InlineKeyboard()
-			.text("🗑️ Удалить тариф", `delete-tariff-${this.tariffId}`).danger()
-			.row()
-			.text("⬅️ Назад", `menu-back`);
-
-		const title = `💰 Тариф (${tariff.type})\n${zonesStr}\nНачало действия: ${tariff.startDate.toLocaleDateString('ru-RU')}`;
-
-		if (ctx.callbackQuery) await ctx.callbackQuery.message?.editText(title, { reply_markup: keyboard });
-		else await ctx.reply(title, { reply_markup: keyboard });
-	}
+  get buttons(): IMenuButton[] {
+    return [
+      {
+        text: "🗑️ Удалить тариф",
+        callback: `delete-tariff-${this.tariffId}`,
+        style: "danger",
+        row: true
+      }
+    ];
+  }
 }

@@ -22,20 +22,16 @@ export default class CreateReadingScene extends BaseScene {
 
 	// Шаг 0: Показать выбор года/месяца
 	private askYear = async (ctx: CallbackContext) => {
-		const accountId = ctx.wizard.state.accountId;
-		if (!accountId) {
+		if (!ctx.wizard.state.accountId) {
 			await this.abort(ctx, "❌ Ошибка: не указан ID счета.");
 			return;
 		}
 		ctx.wizard.state.message = ctx.callbackQuery?.message;
 		const currentYear = new Date().getFullYear();
 		ctx.wizard.state.selectedYear = currentYear;
-		await ctx.wizard.state.message?.editText(
-			`📅 Выберите месяц для ввода показаний (${currentYear}):`,
-			{
-				reply_markup: ctx.utils.makeYearMonthKeyboard(currentYear),
-			},
-		);
+		await ctx.wizard.state.message?.editText(`📅 Выберите месяц для ввода показаний (${currentYear}):`, {
+      reply_markup: ctx.utils.makeYearMonthKeyboard(currentYear),
+    });
 		return ctx.wizard.next();
 	};
 
@@ -45,7 +41,7 @@ export default class CreateReadingScene extends BaseScene {
 		const yearData = ctx.callbackQuery?.data?.match(/^select-year-(\d{4})$/);
 		if (yearData) {
 			ctx.wizard.state.selectedYear = parseInt(yearData[1], 10);
-			await ctx.callbackQuery?.message?.editText(
+			await ctx.wizard.state.message?.editText(
 				`📅 Выберите месяц для ввода показаний (${ctx.wizard.state.selectedYear}):`,
 				{
 					reply_markup: ctx.utils.makeYearMonthKeyboard(
@@ -203,8 +199,7 @@ export default class CreateReadingScene extends BaseScene {
 			}
 
 			const keyboard = new InlineKeyboard()
-				.text("➕ Добавить еще", "add_more")
-				.row()
+				.text("➕ Добавить еще", "add_more").success().row()
 				.text("⬅️ Назад", `readings-${ctx.wizard.state.accountId}`);
 
 			await ctx.wizard.state.message?.editText(resultMessage, {

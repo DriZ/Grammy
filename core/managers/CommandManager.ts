@@ -1,117 +1,102 @@
 import type BotClient from "@core/Client.js";
 import { BaseCommand } from "@structures/index.js";
-import { glob } from "glob";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
+import { BaseManager } from "./BaseManager.js";
+import type { CommandModule } from "@app-types/index.js";
 
 
-export class CommandManager {
-	public client: BotClient;
-	public commands: Map<string, BaseCommand>;
-	public aliases: Map<string, string>;
+export class CommandManager extends BaseManager {
+  public commands: Map<string, BaseCommand>;
+  public aliases: Map<string, string>;
 
-	constructor(client: BotClient) {
-		this.client = client;
-		this.commands = new Map();
-		this.aliases = new Map();
-	}
+  constructor(client: BotClient) {
+    super(client);
+    this.commands = new Map();
+    this.aliases = new Map();
+  }
 
-	async loadCommands() {
-		console.log("[CommandManager] Загружаю команды...");
-		const __dirname = path.dirname(fileURLToPath(import.meta.url));
-		const commandsPath = path.join(__dirname, "..", "..", "commands");
-		console.log(`[CommandManager] Searching in: ${commandsPath}`);
-		const commandFiles = await glob(`**/*.js`, { cwd: commandsPath });
-		console.log(`[CommandManager] Found ${commandFiles.length} files.`);
+  async loadCommands() {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const commandsPath = path.join(__dirname, "..", "..", "commands");
 
-		await Promise.all(
-			commandFiles.map(async (file) => {
-				const filePath = path.join(commandsPath, file);
-				const fileUrl = pathToFileURL(filePath).href;
+    await this.loadFiles<CommandModule>(commandsPath, "**/*.js", async (module, filePath) => {
+      const CommandClass = module.default;
 
-				try {
-					const module = await import(fileUrl);
-					const CommandClass = module.default;
+      if (CommandClass && CommandClass.prototype instanceof BaseCommand) {
+        const command = new CommandClass(this.client);
+        command.config.location = filePath;
 
-					if (CommandClass && CommandClass.prototype instanceof BaseCommand) {
-						const command = new CommandClass(this.client);
-						command.config.location = filePath;
+        if (command.info.name) {
+          this.commands.set(command.info.name.toLowerCase(), command);
+          this.log(`✅ Command loaded: ${command.info.name}`);
 
-						if (command.info.name) {
-							this.commands.set(command.info.name.toLowerCase(), command);
-							console.log(`[CommandManager] Команда загружена: ${command.info.name}`);
+          if (command.info.aliases && command.info.aliases.length > 0) {
+            command.info.aliases.forEach((alias: string) =>
+              this.aliases.set(alias.toLowerCase(), command.info.name),
+            );
+          }
+        } else {
+          this.warn(`Skipped ${filePath}: Command has no name.`);
+        }
+      } else {
+        this.warn(`Skipped ${filePath}: Not a Command subclass or no default export.`);
+      }
+    });
 
-							if (command.info.aliases && command.info.aliases.length > 0) {
-								command.info.aliases.forEach((alias: string) =>
-									this.aliases.set(alias.toLowerCase(), command.info.name),
-								);
-							}
-						} else {
-							console.warn(
-								`[CommandManager] ⚠️ Skipped ${file}: Command has no name.`,
-							);
-						}
-					} else {
-						console.warn(
-							`[CommandManager] ⚠️ Skipped ${file}: Not a Command subclass or no default export.`,
-						);
-					}
-				} catch (error) {
-					console.error(
-						`[CommandManager] Ошибка при загрузке команды из файла ${file}:`,
-						error,
-					);
-				}
-			}),
-		);
-		console.log(`[CommandManager] Загружено ${this.commands.size} команд.`);
-	}
+    this.log(`✅ Loaded ${this.commands.size} commands.`);
+  }
 
-	async registerBotCommands() {
-		const commandList = Array.from(this.commands.values()).map((cmd) => ({
-			command: cmd.info.name.toLowerCase(),
-			description: cmd.info.description || "Нет описания",
-		}));
+  async registerBotCommands() {
+    const commandList = Array.from(this.commands.values()).map((cmd) => ({
+      command: cmd.info.name.toLowerCase(),
+      description: cmd.info.description || "No description provided.",
+    }));
 
-		try {
-			await this.client.api.setMyCommands(commandList);
-			console.log("[CommandManager] Команды зарегистрированы в меню бота.");
-		} catch (error) {
-			console.error("[CommandManager] Ошибка при регистрации команд в меню бота:", error);
-		}
-	}
+    try {
+      await this.client.api.setMyCommands(commandList);
+      this.log("✅ Commands registered in telegram API successfully.");
+    } catch (error) {
+      this.error("Error while registering commands:", error);
+    }
+  }
 
-	unloadCommand(commandName: string) {
-		const command = this.commands.get(commandName);
-		if (command) {
-			if (command.info.aliases) {
-				command.info.aliases.forEach((alias) => this.aliases.delete(alias));
-			}
-			this.commands.delete(commandName);
-		}
-	}
+  unloadCommand(commandName: string) {
+    try {
+      const command = this.commands.get(commandName);
+      if (command) {
+        if (command.info.aliases) {
+          command.info.aliases.forEach((alias) => {
+            this.aliases.delete(alias);
+            this.log(`🗑️ Alias unloaded: ${alias} -> ${command.info.name}`);
+          });
+        }
+        this.commands.delete(commandName);
+      }
+      this.log(`🗑️ Command unloaded: ${commandName}`);
+    } catch (error) {
+      this.error(`Error while unloading command ${commandName}:`, error);
+    }
+  }
 
-	async loadCommand(commandPath: string) {
-		try {
-			const fileUrl = `${pathToFileURL(commandPath).href}?update=${Date.now()}`;
-			const module = await import(fileUrl);
-			const CommandClass = module.default;
-			if (CommandClass && CommandClass.prototype instanceof BaseCommand) {
-				const command = new CommandClass(this.client) as BaseCommand;
-				command.config.location = commandPath;
-				if (command.info.name) {
-					this.commands.set(command.info.name.toLowerCase(), command);
-					if (command.info.aliases)
-						command.info.aliases.forEach((alias) =>
-							this.aliases.set(alias.toLowerCase(), command.info.name),
-						);
-				}
-			}
-		} catch (error) {
-			console.error(
-				`[CommandManager] Ошибка при загрузке команды из файла ${commandPath}:`,
-				error,
-			);
-		}
-	}
+  async loadCommand(commandPath: string) {
+    const fileUrl = `${pathToFileURL(commandPath).href}?update=${Date.now()}`;
+    const module = await this.importModule<CommandModule>(fileUrl);
+    if (!module) return;
+
+    const CommandClass = module.default;
+    if (CommandClass && CommandClass.prototype instanceof BaseCommand) {
+      const command = new CommandClass(this.client) as BaseCommand;
+      command.config.location = commandPath;
+      if (command.info.name) {
+        this.commands.set(command.info.name.toLowerCase(), command);
+        if (command.info.aliases)
+          command.info.aliases.forEach((alias) => {
+            this.aliases.set(alias.toLowerCase(), command.info.name);
+            this.log(`✅ Alias loaded: ${alias} -> ${command.info.name}`);
+          });
+      }
+      this.log(`✅ Command loaded: ${command.info.name}`);
+    }
+  }
 }

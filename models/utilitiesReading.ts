@@ -1,14 +1,11 @@
+import type { ZoneReading } from "@app-types/index";
 import { Schema, model, Document, Types } from "mongoose";
 
-export type ZoneReading = {
-	name: string; // "day", "night", "peak", "half-peak"
-	value: number;
-}
 
 export interface IUtilitiesReading extends Document {
 	account_id: Types.ObjectId;
-	year: number; // новый атрибут
-	month: number; // новый атрибут (1–12)
+	year: number;
+	month: number;
 	zones: ZoneReading[];
 	createdAt?: Date;
 	updatedAt?: Date;

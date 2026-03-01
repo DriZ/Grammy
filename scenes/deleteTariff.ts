@@ -25,7 +25,7 @@ export default class DeleteTariffScene extends BaseScene {
 
 		ctx.wizard.state.accountId = tariff.account_id.toString();
 
-		await ctx.scene.confirmOrCancel(ctx, `Вы уверены, что хотите удалить тариф ${tariff.type}?`);
+		await this.confirmOrCancel(ctx, `Вы уверены, что хотите удалить тариф ${tariff.type}?`);
 		return ctx.wizard.next();
 	}
 
