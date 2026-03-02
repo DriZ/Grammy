@@ -86,6 +86,37 @@ export default class StartCommand extends BaseCommand {
         return;
       }
 
+      if (address.ownerId && address.ownerId !== telegramId) {
+        const ownerUser = await User.findOne({ telegram_id: address.ownerId });
+        const ownerLang = ownerUser?.language || "ru";
+
+        let requesterName = ctx.from?.first_name || "User";
+        if (ctx.from?.last_name) requesterName += ` ${ctx.from.last_name}`;
+        if (ctx.from?.username) requesterName += ` (@${ctx.from.username})`;
+
+        const i18n = this.client.i18n;
+        const notificationText = i18n.t(ownerLang, "invite.owner-notification", {
+          user: ctx.escapeHTML(requesterName),
+          address: ctx.escapeHTML(address.name)
+        });
+
+        const keyboard = new InlineKeyboard()
+          .text(i18n.t(ownerLang, "button.approve"), `join-approve-${addressId}-${telegramId}`)
+          .text(i18n.t(ownerLang, "button.reject"), `join-reject-${addressId}-${telegramId}`);
+
+        try {
+          await ctx.api.sendMessage(address.ownerId, notificationText, {
+            parse_mode: "HTML",
+            reply_markup: keyboard
+          });
+          await ctx.reply(ctx.t("invite.request-sent", { address: ctx.escapeHTML(address.name) }), { parse_mode: "HTML" });
+        } catch (e) {
+          console.error("Failed to send request to owner:", e);
+          await ctx.reply(ctx.t("invite.error"));
+        }
+        return;
+      }
+
       await UserAddress.create({
         telegram_id: telegramId,
         address_id: addressId,

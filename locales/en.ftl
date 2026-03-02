@@ -290,7 +290,7 @@ invite =
 
 create-reminder =
   .ask-title = Enter reminder title:
-  .ask-day = Enter day of month (1-31):
+  .ask-day = Enter day of month (1-31). For last day of month, enter 31:
   .ask-time = Enter time (HH:MM):
   .error-text = ❌ Please enter text.
   .error-day = ❌ Enter a valid day (number 1-31).
@@ -305,7 +305,7 @@ delete-reminder =
   .cancelled = ❌ Deletion cancelled.
 
 set-timezone =
-  .ask = Enter your timezone (e.g. Europe/Kyiv), select from list or send location:
+  .ask = Select your timezone from list or send location:
   .send-location = Please press the button below or send location via attachment 📎 to detect timezone automatically.
   .error-invalid = ❌ Invalid timezone.
   .success = ✅ Timezone set to: <b>{ $timezone }</b>.
