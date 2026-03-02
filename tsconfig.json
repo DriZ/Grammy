@@ -28,6 +28,9 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"declaration": true,
+
+		// Включаем поддержку декораторов
+		"experimentalDecorators": true,
 		"declarationMap": true,
 		"sourceMap": true,
 		"resolveJsonModule": true,

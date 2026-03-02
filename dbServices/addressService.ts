@@ -1,7 +1,6 @@
-import { Types } from "mongoose";
 import { UserAddress, Address, Account, Tariff, UtilitiesReading } from "../models/index.js";
 
-export async function deleteAddress(addressId: Types.ObjectId, telegramId?: number) {
+export async function deleteAddress(addressId: string, telegramId?: number) {
 	const userAddresses = await UserAddress.find({ address_id: addressId });
 
 	if (userAddresses.length === 0) {

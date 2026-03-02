@@ -1,9 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { type CallbackQueryContext, Context, type FilterQuery, type SessionFlavor } from "grammy";
 import { type HydrateFlavor } from "@grammyjs/hydrate";
 import type { MenuManager, CommandManager, SceneManager } from "@managers/index.js";
-import type { SceneHandler } from "@handlers/index.js";
 import * as utils from "@core/util.js";
 import { type I18nFlavor } from "@grammyjs/i18n"
+import type { BaseCommand, BaseMenu, BaseScene, BaseEvent } from "@core/structures";
+import type { MessageXFragment, MessageX } from "@grammyjs/hydrate/out/data/message";
+import type { MeterType, IAccount } from "@models/account";
+import type { MaybeInaccessibleMessage } from "grammy/types";
 
 // ============================================================
 // 🤖 Типы конфигурации и уровни доступа
@@ -13,44 +17,59 @@ import { type I18nFlavor } from "@grammyjs/i18n"
  * Основная конфигурация бота
  */
 export interface IBotConfig {
-	owner: number | null;
-	admins: number[];
-	permissions: typeof EPermissionLevel;
+  owner: number | null;
+  admins: number[];
+  permissions: typeof EPermissionLevel;
 }
 
 /**
  * Информация о команде
  */
-export interface ICommandInfo {
-	name: string;
-	description: string;
-	aliases: string[];
-	category: string;
-	usage: string;
+export interface CommandInfo {
+  name: string;
+  description: string;
+  aliases: string[];
+  category: string;
+  usage: string;
 }
 
 /**
  * Конфигурация команды
  */
-export interface ICommandConfig {
-	permission: TPermissionLevel;
-	location: string | null;
-	enabled: boolean;
-	showInMenu: boolean;
+export interface CommandConfig {
+  permission: TPermissionLevel;
+  location: string | null;
+  enabled: boolean;
+  showInMenu: boolean;
 }
 
 /**
  * Структура команды
  */
-export interface ICommand {
-	info: ICommandInfo;
-	config: ICommandConfig;
+export interface CommandBase {
+  info: CommandInfo;
+  config: CommandConfig;
+}
+
+/**
+ * Опции для создания команды
+ */
+export interface CommandOptions {
+  name: string;
+  description: string;
+  aliases?: string[];
+  category?: string;
+  usage?: string;
+  permission: Readonly<TPermissionLevel>;
+  location?: string | null;
+  enabled?: boolean;
+  showInMenu?: boolean;
 }
 
 export const EPermissionLevel = {
-	User: 0,
-	Admin: 1,
-	Owner: 2,
+  User: 0,
+  Admin: 1,
+  Owner: 2,
 } as const;
 
 /** * Уровни прав доступа:
@@ -61,80 +80,78 @@ export const EPermissionLevel = {
 export type TPermissionLevel = typeof EPermissionLevel[keyof typeof EPermissionLevel];
 
 /**
- * Опции для создания команды
- */
-export interface ICommandOptions {
-	name: string;
-	description: string;
-	aliases?: string[];
-	category?: string;
-	usage?: string;
-	permission: Readonly<TPermissionLevel>;
-	location?: string | null;
-	enabled?: boolean;
-	showInMenu?: boolean;
-}
-
-/**
  * Данные, сохраняемые в сессию
  */
 export interface ISessionData {
-	currentScene?: string | null;
-	step?: number;
-	wizardState?: Record<string, unknown>;
-	menuStack: string[];
-	currentMenuId?: string;
-	language?: string;
+  currentScene?: string | null;
+  step?: number;
+  wizardState?: Record<string, unknown> & Partial<MyWizardState>;
+  menuStack: string[];
+  currentMenuId?: string;
+  language?: string;
 }
 
 /**
  * Сервисы, которые будут переданы в контекст для доступа к ним
  */
 export interface IServices {
-	menuManager: MenuManager;
-	sceneHandler: SceneHandler;
-	sceneManager: SceneManager;
-	commandManager: CommandManager;
+  menuManager: MenuManager;
+  sceneManager: SceneManager;
+  commandManager: CommandManager;
 }
 
 export interface IServicesFlavor {
-	services: IServices;
-	utils: typeof utils;
+  services: IServices;
+  escapeHTML: typeof utils.escapeHTML;
 }
 
 export type BaseContext = HydrateFlavor<Context> & IServicesFlavor & I18nFlavor & {
-	resolveText: (text: string | ((ctx: CallbackContext) => string)) => string;
+  resolveText: (text: string | ((ctx: CallbackContext) => string | Promise<string>)) => Promise<string>;
 };
 export type SessionContext = BaseContext &
-	SessionFlavor<ISessionData> & {
-		wizard: {
-			next: () => Promise<void>;
-			back: () => Promise<void>;
-			selectStep: (ctx: CallbackContext, stepIndex: number) => Promise<void>;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			state: Record<string, any>;
-		};
-		scene: {
-			leave: () => Promise<void>;
-			backToMenu: (ctx: CallbackContext, text: string, menuName: string) => Promise<void>;
-			backToUtilitiesMenu: (ctx: CallbackContext, text: string) => Promise<void>;
-			confirmOrCancel: (ctx: CallbackContext, text: string) => Promise<void>;
-			cancelCreating: (ctx: CallbackContext, menuName?: string) => Promise<void>;
-			cancelDeleting: (ctx: CallbackContext, menuName?: string) => Promise<void>;
-		};
-	};
+  SessionFlavor<ISessionData> & {
+    wizard: {
+      next: () => Promise<void>;
+      back: () => Promise<void>;
+      selectStep: (ctx: CallbackContext, stepIndex: number) => Promise<void>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      state: Record<string, any> & Partial<MyWizardState>;
+    };
+    scene: {
+      leave: () => Promise<void>;
+    };
+  };
 export type CallbackContext = CallbackQueryContext<SessionContext> & SessionContext;
 
 export interface IScene<C> {
-	name: string;
-	enter: (ctx: C, params?: object | null) => Promise<void>;
-	handle: (ctx: C) => Promise<void>;
-	leave?: (ctx: C) => Promise<void>;
+  name: string;
+  enter: (ctx: C, params?: object | null) => Promise<void>;
+  handle: (ctx: C) => Promise<void>;
+  leave?: (ctx: C) => Promise<void>;
 }
 
 export interface IWizardScene<C> {
-	name: string;
-	steps: Array<(ctx: C, params?: object | null) => Promise<void>>;
+  name: string;
+  steps: Array<(ctx: C, params?: object | null) => Promise<void>>;
+}
+
+export interface MyWizardState {
+  resource: TResourceType;
+  meterType: MeterType;
+  message: (MessageXFragment & (MessageX & MaybeInaccessibleMessage)) | undefined;
+  addressId: string;
+  accountNumber: string;
+  account: IAccount;
+  accountId: string;
+  unit: string;
+  readingId: string;
+  tariffId: string;
+  fixedFeeId: string;
+  selectedYear: number;
+  targetUserId: number;
+  reminderId: string;
+  hour: number;
+  minute: number;
 }
 
 /**
@@ -149,62 +166,84 @@ export type TStepHandler = (ctx: CallbackContext) => Promise<void>;
 /**
  * Кнопка в меню
  */
-export interface IMenuButton {
-	text: string | ((ctx: CallbackContext) => string);
-	nextMenu?: string;
-	callback: string; // для inline кнопок
-	action?: (ctx: CallbackContext) => void;
+export interface MenuButton {
+  text: string | ((ctx: CallbackContext) => string | Promise<string>);
+  nextMenu?: string;
+  callback: string; // для inline кнопок
+  action?: (ctx: CallbackContext) => void;
+  row?: boolean;
+  style?: "primary" | "success" | "danger";
+  skipHistory?: boolean;
 }
 
 /**
  * Структура меню
  */
-export interface IMenu {
-	id: string;
-	title: string | ((ctx: CallbackContext) => string);
-	buttons: IMenuButton[];
-	callback?: string;
-	inline: boolean;
-	execute?: (ctx: CallbackContext) => void;
+export interface MenuBase {
+  id: string;
+  title: string | ((ctx: CallbackContext) => string | Promise<string>);
+  buttons: MenuButton[] | ((ctx: CallbackContext) => Promise<MenuButton[]> | MenuButton[]);
+  callback?: string;
+  inline: boolean;
+  execute?: (ctx: CallbackContext) => void;
 }
 
 export interface IEvent {
-	name: FilterQuery;
-	once: boolean;
-	info: {
-		name: string;
-	};
+  name: FilterQuery;
+  once: boolean;
+  info: {
+    name: string;
+  };
 }
-
-export interface IResourseProps {
-	name: string;
-	emoji: string;
-}
-
-type TResourceRecord = Readonly<Record<string, IResourseProps>>;
-
 
 /**
  * Возвращает имя и эмодзи типа ресурса
  */
-export const EResource: TResourceRecord = {
-	electricity: {
-		name: "electricity",
-		emoji: "⚡️",
-	},
-	water: {
-		name: "water",
-		emoji: "💧",
-	},
-	gas: {
-		name: "gas",
-		emoji: "🔥",
-	},
+export const EResource = {
+  electricity: {
+    name: "electricity",
+    emoji: "⚡️",
+    units: ["кВт·ч", "kWh"],
+  },
+  water: {
+    name: "water",
+    emoji: "💧",
+    units: ["м³", "л", "гал", "ft³"],
+  },
+  gas: {
+    name: "gas",
+    emoji: "🔥",
+    units: ["м³", "л", "кВт·ч", "kWh", "ft³", "therm"],
+  },
+  heating: {
+    name: "heating",
+    emoji: "🌡️",
+    units: ["Гкал", "ГДж", "кВт·ч", "МВт·ч"],
+  },
+  internet: {
+    name: "internet",
+    emoji: "🌐",
+    units: ["мес.", "день"],
+  },
+  garbage: {
+    name: "garbage",
+    emoji: "🗑️",
+    units: ["чел.", "м²", "ед."],
+  },
+  other: {
+    name: "other",
+    emoji: "📦",
+    units: ["ед.", "шт."],
+  },
 } as const;
 
-export type TResource = typeof EResource[keyof typeof EResource];
+export type TResource = typeof EResource[keyof typeof EResource]; // Тип значения: { name: "electricity", emoji: "⚡️" } | ...
 export type TResourceType = keyof typeof EResource;
 
+export type ZoneReading = {
+  name: string; // "day", "night", "peak", "half-peak"
+  value: number;
+}
 
 // ============================================================
 // 👤 Типы пользователя и аккаунта
@@ -214,132 +253,20 @@ export type TResourceType = keyof typeof EResource;
  * Информация о пользователе Telegram
  */
 export interface TelegramUser {
-	id: number;
-	first_name: string;
-	last_name?: string;
-	username?: string;
-	is_bot: boolean;
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  is_bot: boolean;
 }
 
 /**
  * Состояние для сцены создания аккаунта
  */
 export interface CreateAccountWizardState {
-	resource?: string;
-	cursor: number;
-	name: string;
-}
-
-// ============================================================
-// 🔌 Типы API и данных от сервиса
-// ============================================================
-
-/**
- * Статус заказа от SalesDrive API
- */
-export interface StatusInfo {
-	name: string;
-	type: 1 | 2 | 3 | 4; // 1 - новый, 2 - в работе, 3 - завершён, 4 - удалён
-}
-
-export interface StatusData {
-	id: number;
-	name: string;
-	type: 1 | 2 | 3 | 4;
-}
-
-export type StatusesMap = Record<string, StatusInfo>;
-
-export type Provider = "novaposhta" | "ukrposhta" | "meest" | "rozetka";
-
-export interface Ord_delivery_data {
-	senderId: number;
-	cityName: string;
-	provider: Provider;
-	type: "WarehouseWarehouse" | "WarehouseAddress";
-	parentTrackingNumber: string | null;
-	trackingNumber: string;
-	isPrinted: 1 | 0;
-	statusCode: number;
-	areaName: string;
-	regionName: string;
-	cityType: "с." | "м." | "смт.";
-	hasPostpay: 1 | 0;
-	postpaySum: number;
-	branchNumber: string;
-	address: string;
-	paumentMethod: "Cash" | "Card";
-	postpayPayer: string;
-	cargoType: "Cargo" | "Parcel";
-	addedToRegister: 1 | 0;
-}
-
-export interface Contact {
-	id: number;
-	formId: number;
-	active: 1 | 0;
-	phone: [string];
-	lName: string;
-	fName: string;
-	email: [string];
-	comment: string;
-	leadsCount: number;
-	company: string;
-	con_eDRPOU: string | null;
-	leadsSalesCount: number;
-	leadsSalesAmount: number;
-	createTime: string;
-}
-
-export interface Product {
-	amount: number;
-	productId: number;
-	price: number;
-	stockId: number;
-	costPrice: number;
-	discount: number;
-	description: string;
-	percentDiscount: number;
-	text: string;
-	barcode: string;
-	documentName: string;
-	manufacturer: string;
-	sku: string;
-}
-
-/**
- * Заказ с привязкой к статусу
- */
-export interface OrderItem {
-	formId: number;
-	ord_delivery_data: Ord_delivery_data[];
-	primaryContact: Contact;
-	contacts: Contact[];
-	products: Product[];
-	gurt: 1 | 0 | null;
-	nePeredzvonuvati: 1 | 0 | null;
-	vidsotokVikupuZamovlen: number | null;
-	organizationId: number | null;
-	statusOplati_2: number | null;
-	shippingMethod: number | null;
-	paymentMethod: number | null;
-	shippingAddress: string | null;
-	comment: string;
-	sajt: number | null;
-	externalId: string | null;
-	dzereloZamovlenna: number | null;
-	orderTime: string;
-	statusId: number;
-	typeId: number;
-	userId: number;
-	updateAt: string;
-	paymentAmount: number;
-	expensesAmount: number;
-	profitAmount: number;
-	payedAmount: number | null;
-	restPay: number | null;
-	timeEntryOrder: string;
-	discountAmount: number;
+  resource?: string;
+  cursor: number;
+  name: string;
 }
 
 // ============================================================
@@ -350,8 +277,8 @@ export interface OrderItem {
  * Информация о событии
  */
 export interface EventInfo {
-	name: string;
-	description?: string;
+  name: string;
+  description?: string;
 }
 
 /**
@@ -369,18 +296,18 @@ export type ErrorHandler = (error: Error) => Promise<void> | void;
  * Результат асинхронной операции
  */
 export interface AsyncResult<T> {
-	success: boolean;
-	data?: T;
-	error?: Error;
+  success: boolean;
+  data?: T;
+  error?: Error;
 }
 
 /**
  * Конфигурация логирования
  */
 export interface LogConfig {
-	level: "debug" | "info" | "warn" | "error";
-	timestamp: boolean;
-	colorize: boolean;
+  level: "debug" | "info" | "warn" | "error";
+  timestamp: boolean;
+  colorize: boolean;
 }
 
 // ============================================================
@@ -388,31 +315,25 @@ export interface LogConfig {
 // ============================================================
 
 /**
- * Опции для функции getToken (Azure)
+ * Интерфейс для модулей с default экспортом
  */
-export interface TokenOptions {
-	scopes: string[];
-	clientId: string;
-	clientSecret: string;
-	tenantId: string;
+export interface IModuleDefault<T> {
+  default: new (...args: any[]) => T;
 }
 
-/**
- * Результат чтения Excel файла
- */
-export interface ExcelReadResult {
-	sheets: string[];
-	data: Record<string, unknown[][]>;
-}
+export type CommandModule = IModuleDefault<BaseCommand>;
+export type MenuModule = IModuleDefault<BaseMenu>;
+export type SceneModule = IModuleDefault<BaseScene>;
+export type EventModule = IModuleDefault<BaseEvent>;
 
 /**
  * Параметры для функции pluralize
  */
 export interface PluralizeOptions {
-	count: number;
-	singular: string;
-	few: string;
-	many: string;
+  count: number;
+  singular: string;
+  few: string;
+  many: string;
 }
 
 // ============================================================
@@ -423,12 +344,12 @@ export interface PluralizeOptions {
  * Проверяет, является ли значение BotConfig
  */
 export function isBotConfig(value: unknown): value is IBotConfig {
-	if (typeof value !== "object" || value === null) return false;
-	const config = value as Record<string, unknown>;
-	return (
-		typeof config.owner === "number" ||
-		(config.owner === null &&
-			Array.isArray(config.admins) &&
-			typeof config.permissions === "object")
-	);
+  if (typeof value !== "object" || value === null) return false;
+  const config = value as Record<string, unknown>;
+  return (
+    typeof config.owner === "number" ||
+    (config.owner === null &&
+      Array.isArray(config.admins) &&
+      typeof config.permissions === "object")
+  );
 }

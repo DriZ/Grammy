@@ -1,124 +1,141 @@
-import { InlineKeyboard } from "grammy";
-import type { CallbackContext } from "@app-types/index.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import type { CallbackContext, SceneModule } from "@app-types/index.js";
 import { BaseScene } from "@structures/index.js";
+import { BaseManager } from "./BaseManager.js";
+import type BotClient from "../Client.js";
 
-export class SceneManager {
-	private scenes = new Map<string, BaseScene>();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-	register(scene: BaseScene) {
-		this.scenes.set(scene.name, scene);
-	}
+export type SceneMiddleware = (ctx: CallbackContext, sceneName: string, next: () => Promise<void>) => Promise<void>;
 
-	async enter(ctx: CallbackContext, sceneName: string) {
-		const scene = this.scenes.get(sceneName);
-		if (!scene) throw new Error(`Scene ${sceneName} not found`);
-		ctx.session.currentScene = sceneName;
-		ctx.session.step = 0;
-		ctx.session.wizardState ?? (ctx.session.wizardState = {});
-		console.log(`Вход в сцену ${ctx.session.currentScene}`);
-		await scene.steps[0](ctx);
-	}
+export class SceneManager extends BaseManager {
+  private scenes = new Map<string, BaseScene>();
+  private middlewares: SceneMiddleware[] = [];
 
-	async handle(ctx: CallbackContext) {
-		const sceneName = ctx.session.currentScene;
-		if (!sceneName) return;
-		const scene = this.scenes.get(sceneName);
-		if (!scene) return;
-		const step = ctx.session.step ?? 0;
-		const handler = scene.steps[step];
-		if (handler) {
-			await handler(ctx);
-		}
-	}
+  constructor(client: BotClient) {
+    super(client);
+  }
 
-	async next(ctx: CallbackContext) {
-		const sceneName = ctx.session.currentScene;
-		if (!sceneName) return;
+  register(scene: BaseScene) {
+    this.scenes.set(scene.name, scene);
+  }
 
-		const scene = this.scenes.get(sceneName);
-		if (!scene) return;
+  /**
+   * Регистрирует глобальный middleware, который выполняется перед входом в любую сцену.
+   */
+  use(middleware: SceneMiddleware) {
+    this.middlewares.push(middleware);
+  }
 
-		ctx.session.step = (ctx.session.step ?? 0) + 1;
-		console.log(`Шаг изменился на ${ctx.session.step}`);
-	}
+  /**
+   * Автоматически загружает сцены из папки scenes
+   */
+  async loadScenes(scenesDir: string = path.join(__dirname, "..", "..", "scenes")): Promise<void> {
+    await this.loadFiles<SceneModule>(scenesDir, "**/*.js", async (module) => {
+      const SceneClass = module.default;
 
-	async back(ctx: CallbackContext) {
-		const sceneName = ctx.session.currentScene;
-		if (!sceneName) return;
+      // Пропускаем, если это не класс или нет default export
+      if (!SceneClass || typeof SceneClass !== "function") return;
 
-		const scene = this.scenes.get(sceneName);
-		if (!scene) return;
+      // Проверяем, является ли класс наследником BaseScene
+      if (SceneClass.prototype instanceof BaseScene) {
+        const sceneInstance = new SceneClass(this.client);
+        // Регистрируем сцену
+        this.register(sceneInstance);
+        this.log(`✅ Scene loaded: ${sceneInstance.name}`);
+      }
+    });
+  }
 
-		ctx.session.step = Math.max((ctx.session.step ?? 0) - 1, 0);
-		console.log(`Шаг изменился на ${ctx.session.step}`);
-	}
+  async enter(ctx: CallbackContext, sceneName: string) {
+    const scene = this.scenes.get(sceneName);
+    if (!scene) throw new Error(`Scene ${sceneName} not found`);
 
-	async selectStep(ctx: CallbackContext, stepIndex: number) {
-		const sceneName = ctx.session.currentScene;
-		if (!sceneName) return;
+    const runMiddlewares = async (i: number) => {
+      if (i < this.middlewares.length) {
+        await this.middlewares[i](ctx, sceneName, () => runMiddlewares(i + 1));
+      } else {
+        ctx.session.currentScene = sceneName;
+        ctx.session.step = 0;
+        ctx.session.wizardState ?? (ctx.session.wizardState = {});
+        this.log(`Вход в сцену ${ctx.session.currentScene}`);
+        if (scene.steps.length > 0) {
+          await scene.steps[0](ctx);
+        } else {
+          this.warn(`Scene ${sceneName} has no steps!`);
+        }
+      }
+    };
 
-		const scene = this.scenes.get(sceneName);
-		if (!scene) return;
+    await runMiddlewares(0);
+  }
 
-		// ограничиваем индекс шагов
-		if (stepIndex < 0 || stepIndex >= scene.steps.length) {
-			throw new Error(`Step ${stepIndex} out of range for scene ${sceneName}`);
-		}
+  async handle(ctx: CallbackContext) {
+    const sceneName = ctx.session.currentScene;
+    if (!sceneName) return;
+    const scene = this.scenes.get(sceneName);
+    if (!scene) return;
+    const step = ctx.session.step ?? 0;
+    const handler = scene.steps[step];
+    if (handler) {
+      await handler(ctx);
+    }
+  }
 
-		ctx.session.step = stepIndex;
-		console.log(`Перескок на шаг ${ctx.session.step}`);
+  async next(ctx: CallbackContext) {
+    const sceneName = ctx.session.currentScene;
+    if (!sceneName) return;
 
-		// сразу выполняем обработчик нового шага
-		const handler = scene.steps[ctx.session.step];
-		if (handler) {
-			await handler(ctx);
-		}
-	}
+    const scene = this.scenes.get(sceneName);
+    if (!scene) return;
 
-	async leave(ctx: CallbackContext) {
-		console.log(`Сцена остановлена: ${ctx.session.currentScene}`);
-		ctx.session.currentScene = null;
-		ctx.session.step = 0;
-		ctx.session.wizardState = {};
-	}
+    ctx.session.step = (ctx.session.step ?? 0) + 1;
+    this.log(`➡️ Step changed to ${ctx.session.step}`);
+  }
 
-	getScene(name: string): BaseScene | null {
-		return this.scenes.get(name) || null;
-	}
+  async back(ctx: CallbackContext) {
+    const sceneName = ctx.session.currentScene;
+    if (!sceneName) return;
 
-	/**
-	 * 
-	 * @param ctx 
-	 * @param text Текст, который будет отправлен в сообщении вместе с клавиатурой
-	 */
-	async backToUtilitiesMenu(ctx: CallbackContext, text: string) {
-		return await this.backToMenu(ctx, text);
-	}
+    const scene = this.scenes.get(sceneName);
+    if (!scene) return;
 
-	async cancelDeleting(ctx: CallbackContext, menuName?: string) {
-		await this.backToMenu(ctx, "❌ Удаление отменено.", menuName);
-	}
+    ctx.session.step = Math.max((ctx.session.step ?? 0) - 1, 0);
+    this.log(`⬅️ Step changed to ${ctx.session.step}`);
+  }
 
-	async cancleCreating(ctx: CallbackContext, menuName?: string) {
-		await this.backToMenu(ctx, "❌ Создание отменено.", menuName);
-	}
+  async selectStep(ctx: CallbackContext, stepIndex: number) {
+    const sceneName = ctx.session.currentScene;
+    if (!sceneName) return;
 
-	async backToMenu(ctx: CallbackContext, text: string, menuName?: string) {
-		const keyboard = new InlineKeyboard().text("⬅️ Назад", menuName || "utilities-menu")
-		if (ctx.wizard.state.message && ctx.wizard.state.message.text) {
-			await ctx.wizard.state.message.editText(text, { reply_markup: keyboard });
-			return
-		}
-		if (ctx.update && ctx.update.message && ctx.update.message.text) {
-			await ctx.update.message.editText(text, { reply_markup: keyboard });
-			return
-		}
-		await ctx.callbackQuery.message?.editText(text, { reply_markup: keyboard });
-	}
+    const scene = this.scenes.get(sceneName);
+    if (!scene) return;
 
-	async confirmOrCancel(ctx: CallbackContext, text: string) {
-		await ctx.callbackQuery.message?.editText(text, {
-			reply_markup: new InlineKeyboard().text("🗑️ Удалить", "confirm").danger().text("Отмена", "cancel"),
-		});
-	}
+    // ограничиваем индекс шагов
+    if (stepIndex < 0 || stepIndex >= scene.steps.length) {
+      throw new Error(`[SceneManager] ❌ Step ${stepIndex} out of range for scene ${sceneName}`);
+    }
+
+    ctx.session.step = stepIndex;
+    this.log(`⤴️ Jumped to step ${ctx.session.step}`);
+
+    // сразу выполняем обработчик нового шага
+    const handler = scene.steps[ctx.session.step];
+    if (handler) {
+      await handler(ctx);
+    }
+  }
+
+  async leave(ctx: CallbackContext) {
+    this.log(`⬇️ Scene left: ${ctx.session.currentScene}`);
+    ctx.session.currentScene = null;
+    ctx.session.step = 0;
+    ctx.session.wizardState = {};
+  }
+
+  getScene(name: string): BaseScene | null {
+    return this.scenes.get(name) || null;
+  }
 }

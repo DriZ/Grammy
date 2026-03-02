@@ -21,9 +21,9 @@ export default class PingCommand extends BaseCommand {
 	}
 
 	async execute(ctx: BaseContext): Promise<void> {
-		const sent = await ctx.reply("Pong! 🏓");
+		const sent = await ctx.reply("Pong! 🏓", { parse_mode: "HTML" });
 		const latency = (sent.message_id || 0) - (ctx.message?.message_id || 0);
 
-		await sent.editText(`Pong! 🏓\nLatency: ${latency}ms`);
+		await sent.editText(`Pong! 🏓\n<b>Latency:</b> ${latency}ms`, { parse_mode: "HTML" });
 	}
 }
