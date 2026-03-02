@@ -30,9 +30,9 @@ jobs:
             git pull origin master
             # Устанавливаем/обновляем зависимости
             npm install
-            # Удаляем старые файлы
-            rm -rf dist
+            # Останавливаем приложение
+            pm2 stop bot
             # Собираем TypeScript проект
             npm run build
             # Перезапускаем приложение через pm2 без простоя
-            pm2 reload bot
+            pm2 startOrRestart bot
