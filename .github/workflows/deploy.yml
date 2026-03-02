@@ -35,4 +35,4 @@ jobs:
             # Собираем TypeScript проект
             npm run build
             # Перезапускаем приложение через pm2 без простоя
-            pm2 startOrRestart bot
+            pm2 start bot
