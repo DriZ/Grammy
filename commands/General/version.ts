@@ -40,10 +40,10 @@ export default class VersionCommand extends BaseCommand {
     const uptime = this.formatUptime(uptimeSeconds);
 
     await ctx.reply(
-      `🤖 **Версия бота:** \`v${version}\`\n` +
-      `📅 **Дата сборки:** \`${buildDate.toLocaleString("ru-RU")}\`\n` +
-      `⏱ **Аптайм:** \`${uptime}\``,
-      { parse_mode: "Markdown" }
+      `🤖 <b>Версия бота:</b> <code>v${version}</code>\n` +
+      `📅 <b>Дата сборки:</b> <code>${buildDate.toLocaleString("ru-RU")}</code>\n` +
+      `⏱ <b>Аптайм:</b> <code>${uptime}</code>`,
+      { parse_mode: "HTML" }
     );
   }
 

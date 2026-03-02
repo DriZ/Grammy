@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { type CallbackQueryContext, Context, type FilterQuery, type SessionFlavor } from "grammy";
 import { type HydrateFlavor } from "@grammyjs/hydrate";
 import type { MenuManager, CommandManager, SceneManager } from "@managers/index.js";
 import * as utils from "@core/util.js";
 import { type I18nFlavor } from "@grammyjs/i18n"
-import type BotClient from "@core/Client";
 import type { BaseCommand, BaseMenu, BaseScene, BaseEvent } from "@core/structures";
 import type { MessageXFragment, MessageX } from "@grammyjs/hydrate/out/data/message";
 import type { MeterType, IAccount } from "@models/account";
@@ -25,7 +25,7 @@ export interface IBotConfig {
 /**
  * Информация о команде
  */
-export interface ICommandInfo {
+export interface CommandInfo {
   name: string;
   description: string;
   aliases: string[];
@@ -36,7 +36,7 @@ export interface ICommandInfo {
 /**
  * Конфигурация команды
  */
-export interface ICommandConfig {
+export interface CommandConfig {
   permission: TPermissionLevel;
   location: string | null;
   enabled: boolean;
@@ -46,9 +46,24 @@ export interface ICommandConfig {
 /**
  * Структура команды
  */
-export interface ICommand {
-  info: ICommandInfo;
-  config: ICommandConfig;
+export interface CommandBase {
+  info: CommandInfo;
+  config: CommandConfig;
+}
+
+/**
+ * Опции для создания команды
+ */
+export interface CommandOptions {
+  name: string;
+  description: string;
+  aliases?: string[];
+  category?: string;
+  usage?: string;
+  permission: Readonly<TPermissionLevel>;
+  location?: string | null;
+  enabled?: boolean;
+  showInMenu?: boolean;
 }
 
 export const EPermissionLevel = {
@@ -63,21 +78,6 @@ export const EPermissionLevel = {
  * - Owner (2): доступ только владельцу
  */
 export type TPermissionLevel = typeof EPermissionLevel[keyof typeof EPermissionLevel];
-
-/**
- * Опции для создания команды
- */
-export interface ICommandOptions {
-  name: string;
-  description: string;
-  aliases?: string[];
-  category?: string;
-  usage?: string;
-  permission: Readonly<TPermissionLevel>;
-  location?: string | null;
-  enabled?: boolean;
-  showInMenu?: boolean;
-}
 
 /**
  * Данные, сохраняемые в сессию
@@ -102,7 +102,7 @@ export interface IServices {
 
 export interface IServicesFlavor {
   services: IServices;
-  utils: typeof utils;
+  escapeHTML: typeof utils.escapeHTML;
 }
 
 export type BaseContext = HydrateFlavor<Context> & IServicesFlavor & I18nFlavor & {
@@ -148,6 +148,10 @@ export interface MyWizardState {
   tariffId: string;
   fixedFeeId: string;
   selectedYear: number;
+  targetUserId: number;
+  reminderId: string;
+  hour: number;
+  minute: number;
 }
 
 /**
@@ -162,7 +166,7 @@ export type TStepHandler = (ctx: CallbackContext) => Promise<void>;
 /**
  * Кнопка в меню
  */
-export interface IMenuButton {
+export interface MenuButton {
   text: string | ((ctx: CallbackContext) => string | Promise<string>);
   nextMenu?: string;
   callback: string; // для inline кнопок
@@ -175,10 +179,10 @@ export interface IMenuButton {
 /**
  * Структура меню
  */
-export interface IMenu {
+export interface MenuBase {
   id: string;
   title: string | ((ctx: CallbackContext) => string | Promise<string>);
-  buttons: IMenuButton[] | ((ctx: CallbackContext) => Promise<IMenuButton[]> | IMenuButton[]);
+  buttons: MenuButton[] | ((ctx: CallbackContext) => Promise<MenuButton[]> | MenuButton[]);
   callback?: string;
   inline: boolean;
   execute?: (ctx: CallbackContext) => void;
@@ -314,7 +318,7 @@ export interface LogConfig {
  * Интерфейс для модулей с default экспортом
  */
 export interface IModuleDefault<T> {
-  default: new (client: BotClient) => T;
+  default: new (...args: any[]) => T;
 }
 
 export type CommandModule = IModuleDefault<BaseCommand>;

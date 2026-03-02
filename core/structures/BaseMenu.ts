@@ -1,11 +1,11 @@
-import type { CallbackContext, IMenuButton, IMenu } from "../../types/index.js";
+import type { CallbackContext, MenuButton, MenuBase } from "../../types/index.js";
 import type BotClient from "../Client.js";
 
 /**
  * Базовый класс для всех меню.
  * Реализует интерфейс IMenu для совместимости.
  */
-export abstract class BaseMenu implements IMenu {
+export abstract class BaseMenu implements MenuBase {
   protected client: BotClient;
   public id: string;
   public inline: boolean = true;
@@ -28,7 +28,7 @@ export abstract class BaseMenu implements IMenu {
    * Для статических меню переопределяем этот геттер.
    * Для динамических - возвращаем асинхронную функцию.
    */
-  get buttons(): IMenuButton[] | ((ctx: CallbackContext) => Promise<IMenuButton[]>) {
+  get buttons(): MenuButton[] | ((ctx: CallbackContext) => Promise<MenuButton[]>) {
     return [];
   }
 

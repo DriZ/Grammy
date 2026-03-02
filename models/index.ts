@@ -6,6 +6,7 @@ export * from "./utilitiesReading.js";
 export * from "./tariff.js";
 export * from "./userAddress.js";
 export * from "./fixedFee.js";
+export * from "./reminder.js";
 
 export async function initializeDatabase(): Promise<void> {
 	try {

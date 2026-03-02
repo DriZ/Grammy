@@ -19,10 +19,10 @@ export default class ChangeUnitScene extends BaseScene {
   // Шаг 0: Показываем текущую единицу и предлагаем выбрать новую
   private askUnit = async (ctx: CallbackContext) => {
     const accountId = ctx.wizard.state.accountId;
-    if (!accountId) return this.abort(ctx, "❌ Ошибка: не указан ID счета.");
+    if (!accountId) return this.abort(ctx, ctx.t("error.no-account-id"));
 
     const account = await Account.findById(accountId);
-    if (!account) return this.abort(ctx, "❌ Счет не найден.");
+    if (!account) return this.abort(ctx, ctx.t("error.account-not-found"));
 
     ctx.wizard.state.message = ctx.callbackQuery?.message;
 
@@ -35,28 +35,29 @@ export default class ChangeUnitScene extends BaseScene {
       // Если это текущая единица, можно пометить её (опционально), но пока просто выводим список
       keyboard.text(u, u).row();
     });
-    keyboard.text("Отмена", "cancel");
+    keyboard.text(ctx.t("button.cancel"), "cancel");
 
-    await ctx.wizard.state.message?.editText(`Текущая единица измерения: ${currentUnit}\nВыберите новую:`, {
-      reply_markup: keyboard,
+    await ctx.wizard.state.message?.editText(ctx.t("change-unit.ask", { current: currentUnit }), {
+      reply_markup: keyboard, 
+      parse_mode: "HTML"
     });
     return ctx.wizard.next();
   };
 
   // Шаг 1: Обрабатываем выбор и обновляем БД
   private handleUnit = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Изменение отменено.", `account-${ctx.wizard.state.accountId}`)) return;
-    
+    if (await this.checkCancel(ctx, ctx.t("change-unit.cancelled"), `account-${ctx.wizard.state.accountId}`)) return;
+
     const unit = ctx.callbackQuery?.data;
     if (!unit) return;
 
     const accountId = ctx.wizard.state.accountId;
-    
+
     try {
-        await Account.findByIdAndUpdate(accountId, { unit });
-        return this.abort(ctx, `✅ Единица измерения изменена на ${unit}.`, `account-${accountId}`);
+      await Account.findByIdAndUpdate(accountId, { unit });
+      return this.abort(ctx, ctx.t("change-unit.success", { unit }), `account-${accountId}`);
     } catch (error) {
-        return this.handleError(ctx, error, "❌ Ошибка при обновлении.", `account-${accountId}`);
+      return this.handleError(ctx, error, ctx.t("change-unit.error"), `account-${accountId}`);
     }
   };
 }

@@ -4,7 +4,7 @@ import { InlineKeyboard } from "grammy";
 import { BaseScene } from "@core/structures/BaseScene.js";
 import type BotClient from "@core/Client.js";
 
-const cancelBtn = new InlineKeyboard().text("Отмена", "cancel");
+const cancelBtn = (ctx: CallbackContext) => new InlineKeyboard().text(ctx.t("button.cancel"), "cancel");
 
 export default class CreateFixedFeeScene extends BaseScene {
   constructor(client: BotClient) {
@@ -22,15 +22,15 @@ export default class CreateFixedFeeScene extends BaseScene {
   // Шаг 0: Выбор даты
   private askDate = async (ctx: CallbackContext) => {
     const accountId = ctx.wizard.state.accountId;
-    if (!accountId) return this.abort(ctx, "❌ Ошибка: не указан ID счета.");
+    if (!accountId) return this.abort(ctx, ctx.t("error.no-account-id"));
 
     ctx.wizard.state.message = ctx.callbackQuery?.message;
     const currentYear = new Date().getFullYear();
     ctx.wizard.state.selectedYear = currentYear;
 
     await ctx.wizard.state.message?.editText(
-      `📅 Выберите месяц начала действия абонплаты (${currentYear}):`,
-      { reply_markup: ctx.utils.makeYearMonthKeyboard(currentYear) },
+      ctx.t("create-fixed-fee.ask-date", { year: currentYear }),
+      { reply_markup: this.makeYearMonthKeyboard(currentYear), parse_mode: "HTML" },
     );
     return ctx.wizard.next();
   };
@@ -41,8 +41,8 @@ export default class CreateFixedFeeScene extends BaseScene {
     if (yearData) {
       ctx.wizard.state.selectedYear = parseInt(yearData[1], 10);
       await ctx.callbackQuery?.message?.editText(
-        `📅 Выберите месяц начала действия абонплаты (${ctx.wizard.state.selectedYear}):`,
-        { reply_markup: ctx.utils.makeYearMonthKeyboard(ctx.wizard.state.selectedYear) },
+        ctx.t("create-fixed-fee.ask-date", { year: ctx.wizard.state.selectedYear }),
+        { reply_markup: this.makeYearMonthKeyboard(ctx.wizard.state.selectedYear), parse_mode: "HTML" },
       );
       return;
     }
@@ -54,19 +54,25 @@ export default class CreateFixedFeeScene extends BaseScene {
       ctx.wizard.state.startDate = new Date(year, month - 1, 1);
 
       const account = await Account.findById(ctx.wizard.state.accountId);
-      await ctx.callbackQuery?.message?.editText(`Введите сумму абонплаты (${account?.currency}):`, { reply_markup: cancelBtn });
+      await ctx.callbackQuery?.message?.editText(ctx.t("create-fixed-fee.ask-amount", { currency: account!.currency }), { 
+        reply_markup: cancelBtn(ctx), 
+        parse_mode: "HTML" 
+      });
       return ctx.wizard.next();
     }
   };
 
   // Шаг 2: Ввод суммы и сохранение
   private handleAmount = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Создание отменено.", `fixed-fees-${ctx.wizard.state.accountId}`)) return;
+    if (await this.checkCancel(ctx, ctx.t("create-fixed-fee.cancelled"), `fixed-fees-${ctx.wizard.state.accountId}`)) return;
 
     const amount = parseFloat(ctx.msg?.text?.replace(",", ".") || "");
     if (isNaN(amount) || amount < 0) {
       if (ctx.msg) await ctx.msg.delete();
-      await ctx.wizard.state.message?.editText("❌ Введите корректное число.", { reply_markup: cancelBtn });
+      await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), { 
+        reply_markup: cancelBtn(ctx), 
+        parse_mode: "HTML" 
+      });
       return;
     }
 
@@ -80,10 +86,10 @@ export default class CreateFixedFeeScene extends BaseScene {
       });
 
       const account = await Account.findById(ctx.wizard.state.accountId);
-      const title = `✅ Абонплата добавлена: ${amount} ${account?.currency}`;
+      const title = ctx.t("create-fixed-fee.success", { amount, currency: account!.currency });
       return this.abort(ctx, title, `fixed-fees-${ctx.wizard.state.accountId}`);
     } catch (error) {
-      return this.handleError(ctx, error, "❌ Ошибка при сохранении.", `fixed-fees-${ctx.wizard.state.accountId}`);
+      return this.handleError(ctx, error, ctx.t("create-fixed-fee.error"), `fixed-fees-${ctx.wizard.state.accountId}`);
     }
   };
 }

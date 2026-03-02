@@ -1,60 +1,18 @@
-/**
- * util.ts - Утилиты для работы с Excel, датами, строками и т.д.
- *
- * TypeScript концепции:
- * 1. Union types (|) - тип может быть одним из нескольких типов
- * 2. Nullable types (| null) - значение может быть null
- * 3. Generic функции с <T>
- * 4. Record<K, V> - типизированный объект
- */
-
-import { InlineKeyboard } from "grammy";
-
-export function makeYearMonthKeyboard(selectedYear: number): InlineKeyboard {
-	const keyboard = new InlineKeyboard();
-	const currentMonth = new Date().getMonth() + 1;
-	const currentYear = new Date().getFullYear();
-
-	// месяцы
-	for (let m = 1; m <= 12; m++) {
-		if (m === currentMonth && selectedYear === currentYear) keyboard.text(`${m}`, `select-month-${selectedYear}-${m}`).primary();
-		else keyboard.text(`${m}`, `select-month-${selectedYear}-${m}`);
-		if (m % 3 === 0) keyboard.row();
-	}
-	// годы: выбранный год всегда в центре
-	const years = [selectedYear - 1, selectedYear, selectedYear + 1];
-	years.forEach((y) => {
-		if (y === selectedYear) {
-			keyboard.text(`${y}`, `select-year-${y}`).primary();
-		} else if (y < selectedYear) {
-			keyboard.text(`⬅️ ${y}`, `select-year-${y}`);
-		} else {
-			keyboard.text(`${y} ➡️`, `select-year-${y}`);
-		}
-	});
-	return keyboard;
-}
-
 // ======================
 // СТРОКОВЫЕ УТИЛИТЫ
 // ======================
 
-/**
- * Преобразует строку в формат команды (нижний регистр, без пробелов)
- * @param str - Строка для преобразования
- * @returns Преобразованная строка
- */
-export function toCommandFormat(str: string): string {
-	return str.toLowerCase().replace(/\s+/g, "");
-}
 
 /**
- * Экранирует специальные символы MarkdownV2 в тексте
+ * Экранирует специальные символы для HTML
  * @param text - Входной текст
  * @returns Текст с экранированными символами
  */
-export function escapeMarkdownV2(text: string): string {
-	return text.replace(/([_*[\]()~`>#+\-=|{}.!])/g, "\\$1");
+export function escapeHTML(text: string): string {
+  if (!text) return "";
+  return text.replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 /**
@@ -63,7 +21,7 @@ export function escapeMarkdownV2(text: string): string {
  * @returns Строка с заглавной первой буквой
  */
 export function capitalizeFirstLetter(string: string): string {
-	return string.charAt(0).toUpperCase() + string.slice(1);
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 /**
@@ -73,8 +31,8 @@ export function capitalizeFirstLetter(string: string): string {
  * @returns Обрезанный текст
  */
 export function truncateText(text: string, maxLength: number): string {
-	if (text.length <= maxLength) return text;
-	return text.slice(0, maxLength - 3) + "...";
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength - 3) + "...";
 }
 
 /**
@@ -83,12 +41,12 @@ export function truncateText(text: string, maxLength: number): string {
  * @returns true если валидный URL
  */
 export function isValidUrl(string: string): boolean {
-	try {
-		new URL(string);
-		return true;
-	} catch (_) {
-		return false;
-	}
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 // ======================
@@ -102,9 +60,9 @@ export function isValidUrl(string: string): boolean {
  * @returns Случайное целое число
  */
 export function getRandomInt(min: number, max: number): number {
-	min = Math.ceil(min);
-	max = Math.floor(max);
-	return Math.floor(Math.random() * (max - min)) + min;
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 /**
@@ -113,16 +71,16 @@ export function getRandomInt(min: number, max: number): number {
  * @returns Булево значение или null если не удалось распознать
  */
 export function parseBoolean(value: string | number | boolean): boolean | null {
-	if (typeof value === "string") {
-		const val = value.toLowerCase();
-		if (val === "true" || val === "1" || val === "yes") return true;
-		if (val === "false" || val === "0" || val === "no") return false;
-	} else if (typeof value === "number") {
-		return value === 1;
-	} else if (typeof value === "boolean") {
-		return value;
-	}
-	return null; // Не удалось распознать
+  if (typeof value === "string") {
+    const val = value.toLowerCase();
+    if (val === "true" || val === "1" || val === "yes") return true;
+    if (val === "false" || val === "0" || val === "no") return false;
+  } else if (typeof value === "number") {
+    return value === 1;
+  } else if (typeof value === "boolean") {
+    return value;
+  }
+  return null; // Не удалось распознать
 }
 
 /**
@@ -139,21 +97,21 @@ export function parseBoolean(value: string | number | boolean): boolean | null {
  * pluralize(5, 'яблоко', 'яблока', 'яблок'); // 'яблок'
  */
 export function pluralize(
-	count: number,
-	singular: string,
-	pluralFew: string,
-	pluralMany: string,
+  count: number,
+  singular: string,
+  pluralFew: string,
+  pluralMany: string,
 ): string {
-	const mod10 = count % 10;
-	const mod100 = count % 100;
+  const mod10 = count % 10;
+  const mod100 = count % 100;
 
-	if (mod10 === 1 && mod100 !== 11) {
-		return singular;
-	} else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
-		return pluralFew;
-	} else {
-		return pluralMany;
-	}
+  if (mod10 === 1 && mod100 !== 11) {
+    return singular;
+  } else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return pluralFew;
+  } else {
+    return pluralMany;
+  }
 }
 
 // ======================
@@ -166,7 +124,7 @@ export function pluralize(
  * @returns Promise который разрешается после задержки
  */
 export async function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -175,15 +133,15 @@ export async function sleep(ms: number): Promise<void> {
  * @returns Отформатированная дата
  */
 export function formatDate(date: number | Date): string {
-	const d = new Date(date);
-	const day = String(d.getDate()).padStart(2, "0");
-	const month = String(d.getMonth() + 1).padStart(2, "0"); // Месяцы начинаются с 0
-	const year = d.getFullYear();
-	const hours = String(d.getHours()).padStart(2, "0");
-	const minutes = String(d.getMinutes()).padStart(2, "0");
-	const seconds = String(d.getSeconds()).padStart(2, "0");
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0"); // Месяцы начинаются с 0
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const seconds = String(d.getSeconds()).padStart(2, "0");
 
-	return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+  return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
 }
 
 // ======================
@@ -198,9 +156,9 @@ export function formatDate(date: number | Date): string {
  * @returns Массив чанков
  */
 export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
-	const chunks: T[][] = [];
-	for (let i = 0; i < array.length; i += chunkSize) {
-		chunks.push(array.slice(i, i + chunkSize));
-	}
-	return chunks;
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
 }

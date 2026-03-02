@@ -1,5 +1,5 @@
 import { UserAddress } from "../models/index.js";
-import type { CallbackContext, IMenuButton } from "../types/index.js";
+import type { CallbackContext, MenuButton } from "../types/index.js";
 import { BaseMenu } from "../core/structures/index.js";
 import type BotClient from "../core/Client.js";
 
@@ -13,9 +13,9 @@ export default class UtilitiesMenu extends BaseMenu {
   }
 
   get buttons() {
-    return async (ctx: CallbackContext): Promise<IMenuButton[]> => {
+    return async (ctx: CallbackContext): Promise<MenuButton[]> => {
       const telegramId = ctx.from?.id;
-      const btns: IMenuButton[] = [];
+      const btns: MenuButton[] = [];
 
       if (telegramId) {
         const userAddresses = await UserAddress.find({ telegram_id: telegramId }).populate("address_id");
@@ -34,9 +34,17 @@ export default class UtilitiesMenu extends BaseMenu {
       }
 
       btns.push({
-        text: (ctx) => ctx.t("button.create-address"),
-        callback: "create-address", // MenuHandler автоматически запустит сцену с таким именем
+        text: (ctx) => ctx.t("button.reminders"),
+        nextMenu: "reminders-menu",
+        callback: "reminders-menu",
         row: true,
+      });
+
+      btns.push({
+        text: (ctx) => ctx.t("button.create-address"),
+        callback: "create-address",
+        row: true,
+        style: "success",
       });
 
       return btns;

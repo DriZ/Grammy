@@ -1,5 +1,5 @@
 import { BaseMenu } from "../core/structures/index.js";
-import type { CallbackContext, IMenuButton } from "../types/index.js";
+import type { CallbackContext, MenuButton } from "../types/index.js";
 import { User } from "../models/index.js";
 import type BotClient from "../core/Client.js";
 
@@ -12,7 +12,7 @@ export default class LanguageMenu extends BaseMenu {
     return async (ctx: CallbackContext) => ctx.t("language-select-title");
   }
 
-  get buttons(): IMenuButton[] {
+  get buttons(): MenuButton[] {
     return [
       {
         text: "🇺🇦 Українська",
@@ -46,7 +46,6 @@ export default class LanguageMenu extends BaseMenu {
       );
     }
     await ctx.answerCallbackQuery(ctx.t("language-selected"));
-    // Обновляем меню, чтобы заголовок отобразился на новом языке
     await ctx.services.menuManager.showMenu(ctx, this.id);
   }
 }

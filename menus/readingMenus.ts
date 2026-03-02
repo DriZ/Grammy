@@ -1,8 +1,7 @@
 import { Account, UtilitiesReading } from "@models/index.js";
-import { type CallbackContext, EResource, type IMenuButton, type ZoneReading } from "@app-types/index.js";
+import { type CallbackContext, EResource, type MenuButton, type ZoneReading } from "@app-types/index.js";
 import { BaseMenu } from "@structures/index.js";
 import type BotClient from "@core/Client.js";
-
 
 export class ReadingsMenu extends BaseMenu {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,12 +44,12 @@ export class ReadingsMenu extends BaseMenu {
         }
       }
 
-      return `${ctx.t("readings-menu.title", { year: this.year })} (${EResource[account.resource].emoji ?? ""} №${account.account_number})${consumptionText}`;
+      return `${ctx.t("readings-menu.title", { year: this.year })} (${EResource[account.resource].emoji ?? ""} №${ctx.escapeHTML(account.account_number)})${consumptionText}`;
     };
   }
 
-  get buttons(): IMenuButton[] {
-    const btns: IMenuButton[] = [];
+  get buttons(): MenuButton[] {
+    const btns: MenuButton[] = [];
 
     this.readings.forEach((r) => {
       const zonesStr = r.zones.map((z: ZoneReading) => `${z.name}: ${z.value}`).join(", ");
@@ -85,7 +84,7 @@ export class ReadingMenu extends BaseMenu {
     };
   }
 
-  get buttons(): IMenuButton[] {
+  get buttons(): MenuButton[] {
     return [
       { text: (ctx) => ctx.t("button.delete-reading"), callback: `delete-reading-${this.readingId}`, style: "danger", row: true }
     ];

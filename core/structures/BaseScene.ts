@@ -21,14 +21,14 @@ export abstract class BaseScene {
   protected async backToMenu(ctx: CallbackContext, text: string, menuName: string = "main-menu") {
     const keyboard = new InlineKeyboard().text(ctx.t("button.back"), menuName)
     if (ctx.wizard.state.message && ctx.wizard.state.message.text) {
-      await ctx.wizard.state.message.editText(text, { reply_markup: keyboard });
+      await ctx.wizard.state.message.editText(text, { reply_markup: keyboard, parse_mode: "HTML" });
       return
     }
     if (ctx.update && ctx.update.message && ctx.update.message.text) {
-      await ctx.update.message.editText(text, { reply_markup: keyboard });
+      await ctx.update.message.editText(text, { reply_markup: keyboard, parse_mode: "HTML" });
       return
     }
-    await ctx.callbackQuery.message?.editText(text, { reply_markup: keyboard });
+    await ctx.callbackQuery.message?.editText(text, { reply_markup: keyboard.text(ctx.t("button.home"), "main-menu"), parse_mode: "HTML" });
   }
 
   /**
@@ -63,7 +63,8 @@ export abstract class BaseScene {
     return ctx.callbackQuery.message?.editText(text, {
       reply_markup: new InlineKeyboard()
         .text(ctx.t("button.delete"), "confirm").danger()
-        .text(ctx.t("button.cancel"), "cancel"),
+        .text(ctx.t("button.cancel"), "cancel"), 
+      parse_mode: "HTML"
     });
   }
 
@@ -78,5 +79,30 @@ export abstract class BaseScene {
   protected async handleError(ctx: CallbackContext, error: unknown, text: string = "❌ Error occurred.", menu: string = "main-menu"): Promise<void> {
     console.error(`[Scene: ${this.name}] Error:`, error);
     return this.abort(ctx, text, menu);
+  }
+
+  protected makeYearMonthKeyboard(selectedYear: number): InlineKeyboard {
+    const keyboard = new InlineKeyboard();
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+  
+    // месяцы
+    for (let m = 1; m <= 12; m++) {
+      if (m === currentMonth && selectedYear === currentYear) keyboard.text(`${m}`, `select-month-${selectedYear}-${m}`).primary();
+      else keyboard.text(`${m}`, `select-month-${selectedYear}-${m}`);
+      if (m % 3 === 0) keyboard.row();
+    }
+    // годы: выбранный год всегда в центре
+    const years = [selectedYear - 1, selectedYear, selectedYear + 1];
+    years.forEach((y) => {
+      if (y === selectedYear) {
+        keyboard.text(`${y}`, `select-year-${y}`).primary();
+      } else if (y < selectedYear) {
+        keyboard.text(`⬅️ ${y}`, `select-year-${y}`);
+      } else {
+        keyboard.text(`${y} ➡️`, `select-year-${y}`);
+      }
+    });
+    return keyboard;
   }
 }

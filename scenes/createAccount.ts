@@ -25,39 +25,41 @@ export default class CreateAccountScene extends BaseScene {
 
   // Шаг 0: выбор ресурса
   private askResource = async (ctx: CallbackContext) => {
-    await ctx.callbackQuery?.message?.editText("Выберите тип ресурса:", {
+    await ctx.callbackQuery?.message?.editText(ctx.t("create-account.ask-resource"), {
       reply_markup: new InlineKeyboard()
-        .text("⚡ Электричество", EResource.electricity.name)
-        .text("🌡️ Отопление", EResource.heating.name).row()
-        .text("💧 Вода", EResource.water.name)
-        .text("🔥 Газ", EResource.gas.name).row()
-        .text("🌐 Интернет", EResource.internet.name)
-        .text("🗑️ Мусор", EResource.garbage.name).row()
-        .text("📦 Другое", EResource.other.name)
+        .text(ctx.t("resource.electricity"), EResource.electricity.name)
+        .text(ctx.t("resource.heating"), EResource.heating.name).row()
+        .text(ctx.t("resource.water"), EResource.water.name)
+        .text(ctx.t("resource.gas"), EResource.gas.name).row()
+        .text(ctx.t("resource.internet"), EResource.internet.name)
+        .text(ctx.t("resource.garbage"), EResource.garbage.name).row()
+        .text(ctx.t("resource.other"), EResource.other.name)
         .row()
-        .text("Отмена", "cancel"),
+        .text(ctx.t("button.cancel"), "cancel"), 
+        parse_mode: "HTML"
     });
     return ctx.wizard.next();
   };
 
   // Шаг 1: обработка ресурса
   private handleResource = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Создание счёта отменено.")) return;
+    if (await this.checkCancel(ctx, ctx.t("create-account.cancelled"))) return;
     const resourceData = ctx.callbackQuery?.data;
     if (!resourceData || !(resourceData in EResource)) return;
     ctx.wizard.state.resource = resourceData as TResourceType;
 
     if (ctx.wizard.state.resource === EResource.electricity.name) {
-      await ctx.callbackQuery?.message?.editText("Выберите тип счётчика:", {
+      await ctx.callbackQuery?.message?.editText(ctx.t("create-account.ask-meter-type"), {
         reply_markup: new InlineKeyboard()
-          .text("Однотарифный", MeterType.SINGLE)
+          .text(ctx.t("meter-type.single"), MeterType.SINGLE)
           .row()
-          .text("День/Ночь", MeterType.DAY_NIGHT)
+          .text(ctx.t("meter-type.day-night"), MeterType.DAY_NIGHT)
           .row()
-          .text("Пик/Полупик/Ночь", MeterType.MULTI_ZONE)
+          .text(ctx.t("meter-type.multi-zone"), MeterType.MULTI_ZONE)
           .row()
-          .text("⬅️ Назад", "back")
-          .text("Отмена", "cancel"),
+          .text(ctx.t("button.back"), "back")
+          .text(ctx.t("button.cancel"), "cancel"), 
+          parse_mode: "HTML"
       });
       return ctx.wizard.next();
     }
@@ -68,7 +70,7 @@ export default class CreateAccountScene extends BaseScene {
 
   // Шаг 2: выбор типа счётчика (только для electricity)
   private handleMeterType = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Создание счёта отменено.")) return;
+    if (await this.checkCancel(ctx, ctx.t("create-account.cancelled"))) return;
 
     if (ctx.callbackQuery?.data === "back") {
       return ctx.wizard.selectStep(ctx, 0); // Возврат к выбору ресурса
@@ -93,27 +95,29 @@ export default class CreateAccountScene extends BaseScene {
 
     const keyboard = new InlineKeyboard();
     units.forEach((u) => keyboard.text(u, u).row());
-    keyboard.text("⬅️ Назад", "back").text("Отмена", "cancel");
+    keyboard.text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel");
 
-    await ctx.wizard.state.message?.editText(`Выберите единицу измерения для ${EResource[resource!].emoji} ${resource}:`, {
-      reply_markup: keyboard,
+    await ctx.wizard.state.message?.editText(ctx.t("create-account.ask-unit", { emoji: EResource[resource!].emoji, resource: resource! }), {
+      reply_markup: keyboard, 
+      parse_mode: "HTML"
     });
     return ctx.wizard.next();
   };
 
   // Шаг 4: обработка единицы измерения
   private handleUnit = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Создание счёта отменено.")) return;
+    if (await this.checkCancel(ctx, ctx.t("create-account.cancelled"))) return;
 
     if (ctx.callbackQuery?.data === "back") {
       if (ctx.wizard.state.resource === EResource.electricity.name) {
         // Возврат к выбору счетчика
-        await ctx.callbackQuery.message?.editText("Выберите тип счётчика:", {
+        await ctx.callbackQuery.message?.editText(ctx.t("create-account.ask-meter-type"), {
           reply_markup: new InlineKeyboard()
-            .text("Однотарифный", MeterType.SINGLE).row()
-            .text("День/Ночь", MeterType.DAY_NIGHT).row()
-            .text("Пик/Полупик/Ночь", MeterType.MULTI_ZONE).row()
-            .text("⬅️ Назад", "back").text("Отмена", "cancel"),
+            .text(ctx.t("meter-type.single"), MeterType.SINGLE).row()
+            .text(ctx.t("meter-type.day-night"), MeterType.DAY_NIGHT).row()
+            .text(ctx.t("meter-type.multi-zone"), MeterType.MULTI_ZONE).row()
+            .text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"), 
+            parse_mode: "HTML"
         });
         return ctx.wizard.selectStep(ctx, 2);
       } else {
@@ -131,18 +135,19 @@ export default class CreateAccountScene extends BaseScene {
 
   // Шаг 5: выбор валюты
   private askCurrency = async (ctx: CallbackContext) => {
-    await ctx.wizard.state.message?.editText("Выберите валюту:", {
+    await ctx.wizard.state.message?.editText(ctx.t("create-account.ask-currency"), {
       reply_markup: new InlineKeyboard()
         .text("🇺🇦 UAH", "UAH").text("🇺🇸 USD", "USD").text("🇪🇺 EUR", "EUR").row()
         .text("🇷🇺 RUB", "RUB").text("🇰🇿 KZT", "KZT").text("🇧🇾 BYN", "BYN").row()
-        .text("⬅️ Назад", "back").text("Отмена", "cancel"),
+        .text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"), 
+        parse_mode: "HTML"
     });
     return ctx.wizard.next();
   };
 
   // Шаг 6: обработка валюты
   private handleCurrency = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Создание счёта отменено.")) return;
+    if (await this.checkCancel(ctx, ctx.t("create-account.cancelled"))) return;
 
     // Обработка кнопки Назад
     if (ctx.callbackQuery?.data === "back") {
@@ -155,12 +160,13 @@ export default class CreateAccountScene extends BaseScene {
       } else {
         // Если единица была выбрана автоматически, пропускаем шаг назад
         if (resource === EResource.electricity.name) {
-          await ctx.callbackQuery.message?.editText("Выберите тип счётчика:", {
+          await ctx.callbackQuery.message?.editText(ctx.t("create-account.ask-meter-type"), {
             reply_markup: new InlineKeyboard()
-              .text("Однотарифный", MeterType.SINGLE).row()
-              .text("День/Ночь", MeterType.DAY_NIGHT).row()
-              .text("Пик/Полупик/Ночь", MeterType.MULTI_ZONE).row()
-              .text("⬅️ Назад", "back").text("Отмена", "cancel"),
+              .text(ctx.t("meter-type.single"), MeterType.SINGLE).row()
+              .text(ctx.t("meter-type.day-night"), MeterType.DAY_NIGHT).row()
+              .text(ctx.t("meter-type.multi-zone"), MeterType.MULTI_ZONE).row()
+              .text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"), 
+              parse_mode: "HTML"
           });
           return ctx.wizard.selectStep(ctx, 2);
         } else {
@@ -175,15 +181,17 @@ export default class CreateAccountScene extends BaseScene {
     ctx.wizard.state.currency = currency;
 
     await ctx.callbackQuery?.message?.editText(
-      `Валюта: ${currency}\n\nВведите номер счёта:`,
-      { reply_markup: new InlineKeyboard().text("⬅️ Назад", "back").text("Отмена", "cancel") },
+      ctx.t("create-account.ask-number", { currency }), { 
+        reply_markup: new InlineKeyboard().text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"),
+        parse_mode: "HTML"
+      }
     );
     return ctx.wizard.next();
   };
 
   // Шаг 7: ввод номера счёта
   private handleAccountNumber = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Создание счёта отменено.")) return;
+    if (await this.checkCancel(ctx, ctx.t("create-account.cancelled"))) return;
 
     if (ctx.callbackQuery?.data === "back") {
       return ctx.wizard.selectStep(ctx, 5); // Возврат к выбору валюты
@@ -191,15 +199,16 @@ export default class CreateAccountScene extends BaseScene {
 
     if (!ctx.update.message?.text) {
       await ctx.wizard.state.message!.editText(
-        `Введите номер счёта текстом:`, {
-        reply_markup: new InlineKeyboard().text("⬅️ Назад", "back").text("Отмена", "cancel")
+        ctx.t("create-account.ask-number-text"), {
+        reply_markup: new InlineKeyboard().text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"), 
+        parse_mode: "HTML"
       }
       );
       return
     }
 
     const accountNumber = ctx.update.message?.text;
-    const resource = ctx.wizard.state.resource;
+    const resource = ctx.wizard.state.resource!;
     const meterType = ctx.wizard.state.meterType;
     const addressId = ctx.wizard.state.addressId;
     const currency = ctx.wizard.state.currency || "UAH";
@@ -217,9 +226,14 @@ export default class CreateAccountScene extends BaseScene {
         unit
       });
 
-      await this.abort(ctx, `✅ Счёт ${accountNumber} (${EResource[resource!].emoji} ${resource}${meterType ? ", счётчик: " + meterType : ""}) успешно добавлен.`, `address-${addressId}`);
+      await this.abort(ctx, ctx.t("create-account.success", {
+        account: accountNumber,
+        emoji: EResource[resource!].emoji,
+        resource,
+        meter: meterType ? ", " + ctx.t("create-account.meter-label") + ": " + meterType : ""
+      }), `address-${addressId}`);
     } catch (error) {
-      return this.handleError(ctx, error, "❌ Ошибка при создании счёта.", `address-${addressId}`);
+      return this.handleError(ctx, error, ctx.t("create-account.error"), `address-${addressId}`);
     }
   };
 }

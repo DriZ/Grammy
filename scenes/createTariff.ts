@@ -4,7 +4,7 @@ import { InlineKeyboard } from "grammy";
 import { BaseScene } from "@core/structures/BaseScene.js";
 import type BotClient from "@core/Client.js";
 
-const cancelBtn = new InlineKeyboard().text("Отмена", "cancel");
+const cancelBtn = (ctx: CallbackContext) => new InlineKeyboard().text(ctx.t("button.cancel"), "cancel");
 
 export default class CreateTariffScene extends BaseScene {
   constructor(client: BotClient) {
@@ -25,7 +25,7 @@ export default class CreateTariffScene extends BaseScene {
   private askDate = async (ctx: CallbackContext) => {
     const accountId = ctx.wizard.state.accountId;
     if (!accountId) {
-      await this.abort(ctx, "❌ Ошибка: не указан ID счета.");
+      await this.abort(ctx, ctx.t("error.no-account-id"));
       return;
     }
 
@@ -34,10 +34,10 @@ export default class CreateTariffScene extends BaseScene {
     ctx.wizard.state.selectedYear = currentYear;
 
     await ctx.wizard.state.message?.editText(
-      `📅 Выберите месяц начала действия тарифа (${currentYear}):`,
-      {
-        reply_markup: ctx.utils.makeYearMonthKeyboard(currentYear),
-      },
+      ctx.t("create-tariff.ask-date", { year: currentYear }), {
+        reply_markup: this.makeYearMonthKeyboard(currentYear),
+        parse_mode: "HTML"
+      }
     );
     return ctx.wizard.next();
   };
@@ -49,11 +49,9 @@ export default class CreateTariffScene extends BaseScene {
     if (yearData) {
       ctx.wizard.state.selectedYear = parseInt(yearData[1], 10);
       await ctx.callbackQuery?.message?.editText(
-        `📅 Выберите месяц начала действия тарифа (${ctx.wizard.state.selectedYear}):`,
-        {
-          reply_markup: ctx.utils.makeYearMonthKeyboard(
-            ctx.wizard.state.selectedYear,
-          ),
+        ctx.t("create-tariff.ask-date", { year: ctx.wizard.state.selectedYear }), {
+          reply_markup: this.makeYearMonthKeyboard(ctx.wizard.state.selectedYear), 
+          parse_mode: "HTML"
         },
       );
       return; // Остаемся на этом шаге
@@ -71,7 +69,7 @@ export default class CreateTariffScene extends BaseScene {
       const accountId = ctx.wizard.state.accountId;
       const account = await Account.findById(accountId);
       if (!account) {
-        await this.abort(ctx, "❌ Ошибка: счет не найден.");
+        await this.abort(ctx, ctx.t("error.account-not-found"));
         return;
       }
 
@@ -84,26 +82,27 @@ export default class CreateTariffScene extends BaseScene {
       const unit = account.unit || EResource[account.resource].units[0];
 
       const prompt = type === MeterType.SINGLE
-        ? `Введите цену (${curr}/${unit}):`
+        ? ctx.t("create-tariff.ask-price", { curr, unit })
         : type === MeterType.DAY_NIGHT
-          ? `Введите цену для Дня (${curr}/${unit}):`
+          ? ctx.t("create-tariff.ask-price-day", { curr, unit })
           : type === MeterType.MULTI_ZONE
-            ? `Введите цену для Пика (${curr}/${unit}):`
+            ? ctx.t("create-tariff.ask-price-peak", { curr, unit })
             : "Ошибка определения типа счетчика.";
 
-      await ctx.callbackQuery?.message?.editText(prompt, { reply_markup: cancelBtn });
+      await ctx.callbackQuery?.message?.editText(prompt, { reply_markup: cancelBtn(ctx) });
       return ctx.wizard.next();
     }
   };
 
   // Шаг 2: ввод первой цены
   private handleFirstPrice = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Создание отменено.", `tariffs-${ctx.wizard.state.accountId}`)) return;
+    if (await this.checkCancel(ctx, ctx.t("create-tariff.cancelled"), `tariffs-${ctx.wizard.state.accountId}`)) return;
 
     if (!ctx.msg?.text) {
       if (ctx.msg) await ctx.msg.delete();
-      await ctx.wizard.state.message?.editText("❌ Введите корректное число.", {
-        reply_markup: cancelBtn,
+      await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), {
+        reply_markup: cancelBtn(ctx), 
+        parse_mode: "HTML"
       });
       return;
     }
@@ -111,8 +110,9 @@ export default class CreateTariffScene extends BaseScene {
     const price = parseFloat(ctx.msg?.text.replace(",", "."));
     if (isNaN(price) || price < 0) {
       if (ctx.msg) await ctx.msg.delete();
-      await ctx.wizard.state.message?.editText("❌ Введите корректное число.", {
-        reply_markup: cancelBtn,
+      await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), {
+        reply_markup: cancelBtn(ctx), 
+        parse_mode: "HTML"
       });
       return;
     }
@@ -129,8 +129,9 @@ export default class CreateTariffScene extends BaseScene {
       ctx.wizard.state.zones = [{ name: "day", price }];
       const account = await Account.findById(ctx.wizard.state.accountId);
       const unit = account?.unit || EResource[account!.resource].units[0];
-      await ctx.wizard.state.message?.editText(`Введите цену для Ночи (${account?.currency}/${unit}):`, {
-        reply_markup: cancelBtn,
+      await ctx.wizard.state.message?.editText(ctx.t("create-tariff.ask-price-night", { curr: account!.currency, unit }), {
+        reply_markup: cancelBtn(ctx), 
+        parse_mode: "HTML"
       });
       return ctx.wizard.next();
     }
@@ -139,8 +140,9 @@ export default class CreateTariffScene extends BaseScene {
       ctx.wizard.state.zones = [{ name: "peak", price }];
       const account = await Account.findById(ctx.wizard.state.accountId);
       const unit = account?.unit || EResource[account!.resource].units[0];
-      await ctx.wizard.state.message?.editText(`Введите цену для Полупика (${account?.currency}/${unit}):`, {
-        reply_markup: cancelBtn,
+      await ctx.wizard.state.message?.editText(ctx.t("create-tariff.ask-price-half-peak", { curr: account!.currency, unit }), {
+        reply_markup: cancelBtn(ctx), 
+        parse_mode: "HTML"
       });
       return ctx.wizard.next();
     }
@@ -148,13 +150,14 @@ export default class CreateTariffScene extends BaseScene {
 
   // Шаг 3: ввод второй цены
   private handleSecondPrice = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Создание отменено.", `tariffs-${ctx.wizard.state.accountId}`)) return;
+    if (await this.checkCancel(ctx, ctx.t("create-tariff.cancelled"), `tariffs-${ctx.wizard.state.accountId}`)) return;
 
     const price = parseFloat(ctx.msg?.text?.replace(",", ".") || "");
     if (isNaN(price) || price < 0) {
       if (ctx.msg) await ctx.msg.delete();
-      await ctx.wizard.state.message?.editText("❌ Введите корректное число.", {
-        reply_markup: cancelBtn,
+      await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), {
+        reply_markup: cancelBtn(ctx), 
+        parse_mode: "HTML"
       });
       return;
     }
@@ -171,8 +174,9 @@ export default class CreateTariffScene extends BaseScene {
       ctx.wizard.state.zones.push({ name: "half-peak", price });
       const account = await Account.findById(ctx.wizard.state.accountId);
       const unit = account?.unit || EResource[account!.resource].units[0];
-      await ctx.wizard.state.message?.editText(`Введите цену для Ночи (${account?.currency}/${unit}):`, {
-        reply_markup: cancelBtn,
+      await ctx.wizard.state.message?.editText(ctx.t("create-tariff.ask-price-night", { curr: account!.currency, unit }), {
+        reply_markup: cancelBtn(ctx), 
+        parse_mode: "HTML"
       });
       return ctx.wizard.next();
     }
@@ -180,13 +184,14 @@ export default class CreateTariffScene extends BaseScene {
 
   // Шаг 4: ввод третьей цены (multi-zone)
   private handleThirdPrice = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Создание отменено.", `tariffs-${ctx.wizard.state.accountId}`)) return;
+    if (await this.checkCancel(ctx, ctx.t("create-tariff.cancelled"), `tariffs-${ctx.wizard.state.accountId}`)) return;
 
     const price = parseFloat(ctx.msg?.text?.replace(",", ".") || "");
     if (isNaN(price) || price < 0) {
       if (ctx.msg) await ctx.msg.delete();
-      await ctx.wizard.state.message?.editText("❌ Введите корректное число.", {
-        reply_markup: cancelBtn,
+      await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), {
+        reply_markup: cancelBtn(ctx), 
+        parse_mode: "HTML"
       });
       return;
     }
@@ -210,11 +215,11 @@ export default class CreateTariffScene extends BaseScene {
       else if (ctx.msg) await ctx.msg.delete().catch(() => { });
 
       const account = await Account.findById(ctx.wizard.state.accountId);
-      const title = `✅ Тариф добавлен:\n${ctx.wizard.state.zones.map((z: ZoneParams) => `${z.name}: ${z.price.toLocaleString("ru-RU", { currencyDisplay: "symbol", style: "currency", currency: account?.currency || "UAH", minimumFractionDigits: 2 })}`).join("\n")}`;
+      const title = ctx.t("create-tariff.success", { zones: ctx.wizard.state.zones.map((z: ZoneParams) => `${z.name}: ${z.price.toLocaleString("ru-RU", { currencyDisplay: "symbol", style: "currency", currency: account?.currency || "UAH", minimumFractionDigits: 2 })}`).join("\n") });
       return this.abort(ctx, title, `tariffs-${ctx.wizard.state.accountId}`);
 
     } catch (error) {
-      return this.handleError(ctx, error, "❌ Ошибка при сохранении тарифа.", `tariffs-${ctx.wizard.state.accountId}`);
+      return this.handleError(ctx, error, ctx.t("create-tariff.error"), `tariffs-${ctx.wizard.state.accountId}`);
     }
   };
 }

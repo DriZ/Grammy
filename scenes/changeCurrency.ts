@@ -20,37 +20,38 @@ export default class ChangeCurrencyScene extends BaseScene {
   // Шаг 0: Показываем текущую валюту и предлагаем выбрать новую
   private askCurrency = async (ctx: CallbackContext) => {
     const accountId = ctx.wizard.state.accountId;
-    if (!accountId) return this.abort(ctx, "❌ Ошибка: не указан ID счета.");
+    if (!accountId) return this.abort(ctx, ctx.t("error.no-account-id"));
 
     const account = await Account.findById(accountId);
-    if (!account) return this.abort(ctx, "❌ Счет не найден.");
+    if (!account) return this.abort(ctx, ctx.t("error.account-not-found"));
 
     ctx.wizard.state.message = ctx.callbackQuery?.message;
 
-    await ctx.wizard.state.message?.editText(`Текущая валюта: ${account.currency}\nВыберите новую валюту:`, {
+    await ctx.wizard.state.message?.editText(ctx.t("change-currency.ask", { current: account.currency }), {
       reply_markup: new InlineKeyboard()
         .text("🇺🇦 UAH", "UAH").text("🇺🇸 USD", "USD").text("🇪🇺 EUR", "EUR").row()
         .text("🇷🇺 RUB", "RUB").text("🇰🇿 KZT", "KZT").text("🇧🇾 BYN", "BYN").row()
-        .text("Отмена", "cancel"),
+        .text(ctx.t("button.cancel"), "cancel"), 
+        parse_mode: "HTML"
     });
     return ctx.wizard.next();
   };
 
   // Шаг 1: Обрабатываем выбор и обновляем БД
   private handleCurrency = async (ctx: CallbackContext) => {
-    if (await this.checkCancel(ctx, "❌ Изменение валюты отменено.", `account-${ctx.wizard.state.accountId}`)) return;
-    
+    if (await this.checkCancel(ctx, ctx.t("change-currency.cancelled"), `account-${ctx.wizard.state.accountId}`)) return;
+
     const currency = ctx.callbackQuery?.data;
     // Простая проверка, что это код валюты (3 символа), а не какая-то другая команда
     if (!currency || currency.length !== 3) return;
 
     const accountId = ctx.wizard.state.accountId;
-    
+
     try {
-        await Account.findByIdAndUpdate(accountId, { currency });
-        return this.abort(ctx, `✅ Валюта успешно изменена на ${currency}.`, `account-${accountId}`);
+      await Account.findByIdAndUpdate(accountId, { currency });
+      return this.abort(ctx, ctx.t("change-currency.success", { currency }), `account-${accountId}`);
     } catch (error) {
-        return this.handleError(ctx, error, "❌ Ошибка при обновлении валюты.", `account-${accountId}`);
+      return this.handleError(ctx, error, ctx.t("change-currency.error"), `account-${accountId}`);
     }
   };
 }

@@ -1,4 +1,4 @@
-import type { CallbackContext, IMenuButton } from "../types/index.js";
+import type { CallbackContext, MenuButton } from "../types/index.js";
 import { BaseMenu } from "../core/structures/index.js";
 import type BotClient from "../core/Client.js";
 import type { IFixedFee } from "@models/index.js";
@@ -10,11 +10,11 @@ export class FixedFeesMenu extends BaseMenu {
   }
 
   get title() {
-    return async (ctx: CallbackContext) => "💰 Абонплата / Фиксированные платежи";
+    return async (ctx: CallbackContext) => ctx.t("button.fixed-fees");
   }
 
-  get buttons(): IMenuButton[] {
-    const btns: IMenuButton[] = [];
+  get buttons(): MenuButton[] {
+    const btns: MenuButton[] = [];
 
     if (this.fees.length > 0) {
       this.fees.forEach((f) => {
@@ -32,7 +32,7 @@ export class FixedFeesMenu extends BaseMenu {
     }
 
     btns.push({
-      text: (ctx) => "➕ Добавить абонплату",
+      text: (ctx) => ctx.t("button.create-fixed-fee"),
       callback: `create-fixedfee-${this.accountId}`,
       style: "success",
       row: true
@@ -48,16 +48,17 @@ export class FixedFeeMenu extends BaseMenu {
   }
 
   get title() {
-    return async (_ctx: CallbackContext) => {
-      const priceStr = this.fee.amount.toLocaleString('ru-RU', { style: 'currency', currency: this.currency, currencyDisplay: 'symbol' });
-      return `📌 Абонплата\nСумма: ${priceStr}\nНачало действия: ${this.fee.startDate.toLocaleDateString('ru-RU')}`;
+    return async (ctx: CallbackContext) => {
+      const locale = await ctx.i18n.getLocale() === "ua" ? "uk" : await ctx.i18n.getLocale();
+      const priceStr = this.fee.amount.toLocaleString(locale, { style: 'currency', currency: this.currency, currencyDisplay: 'symbol' });
+      return ctx.t("fixed-fee-menu.title", { amount: priceStr, startDate: this.fee.startDate.toLocaleDateString(locale) });
     };
   }
 
-  get buttons(): IMenuButton[] {
+  get buttons(): MenuButton[] {
     return [
       {
-        text: "🗑️ Удалить",
+        text: (ctx) => ctx.t("button.delete"),
         callback: `delete-fixedfee-${this.feeId}`,
         style: "danger",
         row: true

@@ -1,6 +1,6 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import type { CallbackContext, IMenu, IMenuButton, MenuModule } from "../../types/index.js";
+import type { CallbackContext, MenuBase, MenuButton, MenuModule } from "../../types/index.js";
 import type BotClient from "../Client.js";
 import config from "../../config.js";
 import { EPermissionLevel, type TPermissionLevel } from "../../types/index.js";
@@ -16,8 +16,8 @@ const __dirname = path.dirname(__filename);
  * Хранит, загружает, управляет доступом и предоставляет данные для меню.
  */
 export class MenuManager extends BaseManager {
-  public menus: Map<string, IMenu>;
-  public dynamicMenuResolver: ((ctx: CallbackContext, menuId: string) => Promise<IMenu | undefined>) | undefined = undefined;
+  public menus: Map<string, MenuBase>;
+  public dynamicMenuResolver: ((ctx: CallbackContext, menuId: string) => Promise<MenuBase | undefined>) | undefined = undefined;
 
   constructor(client: BotClient) {
     super(client);
@@ -36,7 +36,7 @@ export class MenuManager extends BaseManager {
     // Пропускаем файлы без default export (например, утилиты или фабрики меню)
     if (!Exported) return;
 
-    let menu: IMenu | null = null;
+    let menu: MenuBase | null = null;
     if (Exported.prototype instanceof BaseMenu) {
       menu = new Exported(this.client);
     }
@@ -46,12 +46,12 @@ export class MenuManager extends BaseManager {
     this.log(`✅ Menu loaded: ${menu.id}`);
   }
 
-  async loadMenus(menusDir: string = path.join(__dirname, "..", "..", "menus")): Promise<Map<string, IMenu>> {
+  async loadMenus(menusDir: string = path.join(__dirname, "..", "..", "menus")): Promise<Map<string, MenuBase>> {
     await this.loadFiles<MenuModule>(menusDir, "**/*.js", async (module) => {
       const Exported = module.default;
       if (!Exported) return;
 
-      let menu: IMenu | null = null;
+      let menu: MenuBase | null = null;
       if (Exported.prototype instanceof BaseMenu) {
         menu = new Exported(this.client);
       }
@@ -65,7 +65,7 @@ export class MenuManager extends BaseManager {
     return this.menus;
   }
 
-  registerMenu(id: string, menu: IMenu) {
+  registerMenu(id: string, menu: MenuBase) {
     // Не пытаемся резолвить заголовок при регистрации, так как это может быть асинхронная операция
     this.log(`⤵️ Registering menu: ${id}`);
     return this.menus.set(id, menu);
@@ -91,7 +91,7 @@ export class MenuManager extends BaseManager {
     }
   }
 
-  getAvailableCommandButtons(ctx: CallbackContext): IMenuButton[] {
+  getAvailableCommandButtons(ctx: CallbackContext): MenuButton[] {
     const userId = ctx.from?.id;
     const isOwner = config.owner && userId === config.owner;
     const isAdmin = config.admins && config.admins.includes(userId || 0);
@@ -100,7 +100,7 @@ export class MenuManager extends BaseManager {
     if (isAdmin) userPerm = EPermissionLevel.Admin;
     if (isOwner) userPerm = EPermissionLevel.Owner;
 
-    const buttons: IMenuButton[] = [];
+    const buttons: MenuButton[] = [];
 
     this.client.commandManager.commands.forEach((cmd) => {
       if (cmd.config.permission > userPerm) return;
@@ -110,7 +110,7 @@ export class MenuManager extends BaseManager {
       buttons.push({
         text: `🔹 ${cmd.info.description || cmd.info.name}`,
         callback: `cmd:${cmd.info.name}`,
-      } as IMenuButton);
+      } as MenuButton);
     });
 
     return buttons;
@@ -122,7 +122,7 @@ export class MenuManager extends BaseManager {
   private addNavigationButtons(ctx: CallbackContext, keyboard: InlineKeyboard) {
     if (ctx.session.menuStack.length > 0) {
       keyboard.row().text(ctx.t("button.back"), "menu-back");
-    } 
+    }
     if (ctx.session.menuStack.length > 1) {
       keyboard.text(ctx.t("button.home"), "main-menu");
     }
@@ -145,9 +145,9 @@ export class MenuManager extends BaseManager {
    * @param id - id меню
    * @param isBack - флаг, указывающий, что это переход назад (не нужно пушить в историю)
    */
-  async showMenu(ctx: CallbackContext, nextMenu: string | IMenu | null = null, isBack: boolean = false, skipHistory: boolean = false): Promise<void> {
+  async showMenu(ctx: CallbackContext, nextMenu: string | MenuBase | null = null, isBack: boolean = false, skipHistory: boolean = false): Promise<void> {
     let menuId: string;
-    let menuObj: IMenu | undefined;
+    let menuObj: MenuBase | undefined;
 
     if (nextMenu && typeof nextMenu === 'object') {
       menuObj = nextMenu;
@@ -194,9 +194,9 @@ export class MenuManager extends BaseManager {
 
       const text = ctx.t("menu.title");
       if (ctx.callbackQuery) {
-        await ctx.editMessageText(text, { reply_markup: keyboard, parse_mode: "Markdown" });
+        await ctx.editMessageText(text, { reply_markup: keyboard, parse_mode: "HTML" });
       } else {
-        await ctx.reply(text, { reply_markup: keyboard, parse_mode: "Markdown" });
+        await ctx.reply(text, { reply_markup: keyboard, parse_mode: "HTML" });
       }
       return;
     }
@@ -230,8 +230,8 @@ export class MenuManager extends BaseManager {
 
     const menuTitle = await ctx.resolveText(menu.title);
     ctx.callbackQuery
-      ? await ctx.callbackQuery.message?.editText(menuTitle, { reply_markup: keyboard })
-      : await ctx.reply(menuTitle, { reply_markup: keyboard });
+      ? await ctx.callbackQuery.message?.editText(menuTitle, { reply_markup: keyboard, parse_mode: "HTML" })
+      : await ctx.reply(menuTitle, { reply_markup: keyboard, parse_mode: "HTML" });
     return;
   }
 }
