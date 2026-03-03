@@ -84,13 +84,14 @@ export default class CreateReadingScene extends BaseScene {
       return;
     }
 
-    // Ищем показания за предыдущий месяц
-    const prevMonthDate = new Date(year, month - 1, 1);
-    prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
-    const prevYear = prevMonthDate.getFullYear();
-    const prevMonth = prevMonthDate.getMonth() + 1;
-
-    const previousReading = await UtilitiesReading.findOne({ account_id: accountId, year: prevYear, month: prevMonth });
+    // Ищем последнее доступное показание перед выбранной датой
+    const previousReading = await UtilitiesReading.findOne({
+      account_id: accountId,
+      $or: [
+        { year: { $lt: year } },
+        { year: year, month: { $lt: month } }
+      ]
+    }).sort({ year: -1, month: -1 });
     ctx.wizard.state.previousReading = previousReading;
 
     const type = account.meterType || MeterType.SINGLE;
@@ -164,7 +165,13 @@ export default class CreateReadingScene extends BaseScene {
     const prevZone = previousReading?.zones.find(z => z.name === currentZoneName);
     const prevValue = prevZone?.value ?? 0;
 
-    const prompt = ctx.t("create-reading.ask-zone-value", { zone: currentZoneName, prev: prevValue });
+    let prompt: string;
+    if (previousReading) {
+      const prevDate = `${previousReading.month.toString().padStart(2, "0")}.${previousReading.year}`;
+      prompt = ctx.t("create-reading.ask-zone-value-with-date", { zone: currentZoneName, prev: prevValue, prevDate });
+    } else {
+      prompt = ctx.t("create-reading.ask-zone-value", { zone: currentZoneName, prev: prevValue });
+    }
 
     await ctx.wizard.state.message?.editText(prompt, {
       reply_markup: cancelBtn(ctx),

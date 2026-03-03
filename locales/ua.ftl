@@ -162,6 +162,7 @@ create-reading =
   .error-exists = ❌ Показання за { $date } вже введені.
   .cancelled = ❌ Створення скасовано.
   .error-value-lower = ❌ Введіть число більше або рівне попередньому показанню ({ $prev }).
+  .ask-zone-value-with-date = Введіть показання для зони "{ $zone }" (попереднє за { $prevDate }: { $prev }):
   .ask-zone-value = Введіть показання для зони "{ $zone }" (попереднє: { $prev }):
   .success = ✅ Показання збережено.
   .consumption = Споживання

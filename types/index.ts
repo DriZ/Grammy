@@ -154,6 +154,11 @@ export interface MyWizardState {
   minute: number;
 }
 
+export interface SceneRoutesData { 
+  prefix: string; 
+  stateKeys: (keyof MyWizardState)[] 
+}
+
 /**
 * Тип для функции шага сцены
 */

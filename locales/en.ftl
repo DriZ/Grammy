@@ -161,6 +161,7 @@ create-reading =
   .error-exists = ❌ Readings for { $date } already exist.
   .cancelled = ❌ Creation cancelled.
   .error-value-lower = ❌ Enter a value greater than or equal to previous reading ({ $prev }).
+  .ask-zone-value-with-date = Enter reading for zone "{ $zone }" (previous from { $prevDate }: { $prev }):
   .ask-zone-value = Enter reading for zone "{ $zone }" (previous: { $prev }):
   .success = ✅ Readings saved.
   .consumption = Consumption
