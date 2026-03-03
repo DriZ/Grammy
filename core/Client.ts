@@ -1,16 +1,16 @@
 import { Bot, session, MemorySessionStorage } from "grammy";
 import { I18n } from "@grammyjs/i18n";
-import { Address, User, UserAddress } from "@models/index.js";
+import { User } from "@models/index.js";
 import type {
   ISessionData,
   SessionContext,
   CallbackContext,
-  MyWizardState,
+  SceneRoutesData,
 } from "@app-types/index.js";
 import { CommandManager, MenuManager, SceneManager } from "@managers/index.js";
 import { MenuHandler, EventHandler, createCommandHandler } from "@handlers/index.js";
 import * as utils from "@core/util.js";
-import { ReminderService } from "@core/services/ReminderService.js";
+import { ReminderService, JoinService } from "@core/services/index.js";
 import { ActionRouter } from "@core/actionRouter.js";
 import { hydrate } from "@grammyjs/hydrate";
 import path from "path";
@@ -29,6 +29,7 @@ export default class BotClient extends Bot<SessionContext> {
   public menuHandler: MenuHandler;
   public sceneManager: SceneManager;
   public reminderService: ReminderService;
+  public joinService: JoinService;
   public router: ActionRouter<CallbackContext>;
   public utils: typeof utils;
   public startTime: Date;
@@ -36,15 +37,9 @@ export default class BotClient extends Bot<SessionContext> {
   public sceneTimers: Map<number, ReturnType<typeof setTimeout>>;
   public i18n: I18n<SessionContext>;
 
-  // API ключ для SalesDrive
-  private readonly SALESDRIVES_API_KEY = process.env.SALESDRIVES_API_KEY;
-  private readonly SALESDRIVES_BASE_URL = "https://kompikok.salesdrive.me/api";
-  private readonly SALESDRIVES_ORDER_LIST_URL = `${this.SALESDRIVES_BASE_URL}/order/list/`;
-  private readonly SALESDRIVES_STATUS_LIST_URL = `${this.SALESDRIVES_BASE_URL}/statuses/`;
-
   /**
    * @constructor
-   * @param {string} token - Токен Telegram-бота.
+   * @param {string} token - Токен Telegram-бота из BotFather.
    */
   constructor(token: string) {
     super(token);
@@ -57,6 +52,7 @@ export default class BotClient extends Bot<SessionContext> {
     this.menuHandler = new MenuHandler(this, this.menuManager);
     this.reminderService = new ReminderService(this);
     this.router = new ActionRouter(this);
+    this.joinService = new JoinService(this);
     this.sessionStorage = new MemorySessionStorage();
     this.sceneTimers = new Map();
     this.i18n = new I18n<SessionContext>({
@@ -173,137 +169,54 @@ export default class BotClient extends Bot<SessionContext> {
       const loadedMenus = await this.menuManager.loadMenus();
       loadedMenus.forEach((menu) => this.menuHandler.registerMenuHandlers(menu));
 
-      // Отдельная регистрация для расчета по адресу.
-      // Регистрируем ДО массива sceneRoutes, чтобы calculate-bill не перехватил этот роут по префиксу.
       this.router.register("calculate-bill-by-address", async (ctx, addressId) => {
         ctx.wizard.state.addressId = addressId as string;
         await this.sceneManager.enter(ctx, "calculate-bill");
       });
 
-      this.router.register("create-address", async (ctx) => {
-        await this.sceneManager.enter(ctx, "create-address");
-      });
 
       // Регистрация роутов, которые запускают сцены.
-      // Это позволяет избежать дублирования кода для каждого роута.
-      const sceneRoutes: { prefix: string; stateKey: keyof MyWizardState }[] = [
-        { prefix: "create-account", stateKey: "addressId" },
-        { prefix: "delete-account", stateKey: "accountId" },
-        { prefix: "delete-address", stateKey: "addressId" },
-        { prefix: "create-reading", stateKey: "accountId" },
-        { prefix: "delete-reading", stateKey: "readingId" },
-        { prefix: "create-tariff", stateKey: "accountId" },
-        { prefix: "delete-tariff", stateKey: "tariffId" },
-        { prefix: "calculate-bill", stateKey: "accountId" },
-        { prefix: "change-currency", stateKey: "accountId" },
-        { prefix: "change-unit", stateKey: "accountId" },
-        { prefix: "create-fixedfee", stateKey: "accountId" },
-        { prefix: "delete-fixedfee", stateKey: "fixedFeeId" },
-        { prefix: "create-reminder", stateKey: "addressId" }, // Используем любое поле, так как оно не критично для старта
-        { prefix: "delete-reminder", stateKey: "reminderId" },
-        { prefix: "set-timezone", stateKey: "addressId" },
+      const sceneRoutes: SceneRoutesData[] = [
+        { prefix: "calculate-bill", stateKeys: ["accountId"] }, // calculate-bill-accountId
+        { prefix: "change-currency", stateKeys: ["accountId"] },// change-currency-accountId
+        { prefix: "change-unit", stateKeys: ["accountId"] },    // change-unit-accountId
+        { prefix: "create-account", stateKeys: ["addressId"] }, // create-account-addressId
+        { prefix: "create-address", stateKeys: [] },            // create-address
+        { prefix: "create-fixedfee", stateKeys: ["accountId"] },// create-fixedfee-accountId
+        { prefix: "create-reading", stateKeys: ["accountId"] }, // create-reading-accountId
+        { prefix: "create-reminder", stateKeys: [] },           // create-reminder
+        { prefix: "create-tariff", stateKeys: ["accountId"] },  // create-tariff-accountId
+        { prefix: "delete-account", stateKeys: ["accountId"] }, // delete-account-accountId
+        { prefix: "delete-address", stateKeys: ["addressId"] }, // delete-address-addressId
+        { prefix: "delete-fixedfee", stateKeys: ["fixedFeeId"] },// delete-fixedfee-fixedFeeId
+        { prefix: "delete-reading", stateKeys: ["readingId"] }, // delete-reading-readingId
+        { prefix: "delete-reminder", stateKeys: ["reminderId"] }, // delete-reminder-remonderId
+        { prefix: "delete-tariff", stateKeys: ["tariffId"] }, // delete-tariff-tariffId
+        { prefix: "kick-user", stateKeys: ["addressId", "targetUserId"] }, // kick-user-addrId-usrId
+        { prefix: "set-timezone", stateKeys: [] }, // set-timezone
+        { prefix: "transfer-address", stateKeys: ["addressId", "targetUserId"] }, // transfer-address-addrId-usrId
       ];
 
-      sceneRoutes.forEach(({ prefix, stateKey }) => {
-        this.router.register(prefix, async (ctx, id) => {
-          // Динамически присваиваем ID в нужное поле состояния
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if (id) (ctx.wizard.state as any)[stateKey] = id;
+      sceneRoutes.forEach(({ prefix, stateKeys }) => {
+        this.router.register(prefix, async (ctx, ...args) => {
+          args.forEach((arg, index) => {
+            if (index < stateKeys.length) {
+              const key = stateKeys[index];
+              let value: string | number = arg;
+              // Преобразуем в число, если ключ этого требует
+              if (key === 'targetUserId') {
+                value = parseInt(arg, 10);
+              }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (ctx.wizard.state as any)[key] = value;
+            }
+          });
           await this.sceneManager.enter(ctx, prefix);
         });
       });
 
-      // Специальные обработчики для сцен с несколькими параметрами
-      this.router.register("transfer-address", async (ctx, payload) => {
-        if (payload) {
-          // payload может быть "addressId" (из меню адреса) или "addressId-userId" (из меню пользователя)
-          const parts = payload.split("-");
-          ctx.wizard.state.addressId = parts[0];
-          if (parts.length > 1) {
-            ctx.wizard.state.targetUserId = parseInt(parts[1], 10);
-          }
-        }
-        await this.sceneManager.enter(ctx, "transfer-address");
-      });
-
-      this.router.register("kick-user", async (ctx, payload) => {
-        if (payload) {
-          const parts = payload.split("-");
-          ctx.wizard.state.addressId = parts[0];
-          if (parts.length > 1) {
-            ctx.wizard.state.targetUserId = parseInt(parts[1], 10);
-          }
-        }
-        await this.sceneManager.enter(ctx, "kick-user");
-      });
-
-      this.router.register("join-approve", async (ctx, payload) => {
-        if (!payload) return;
-        const [addressId, userIdStr] = payload.split("-");
-        const userId = parseInt(userIdStr, 10);
-
-        try {
-          const address = await Address.findById(addressId);
-          if (!address) {
-            await ctx.answerCallbackQuery({ text: ctx.t("invite.not-found") });
-            return;
-          }
-
-          const existing = await UserAddress.findOne({ telegram_id: userId, address_id: addressId });
-          if (!existing) {
-            await UserAddress.create({ telegram_id: userId, address_id: addressId });
-          }
-
-          try {
-            const userLang = (await User.findOne({ telegram_id: userId }))?.language || "ru";
-            await ctx.api.sendMessage(userId, this.i18n.t(userLang, "invite.approved-user", { address: this.utils.escapeHTML(address.name) }), { parse_mode: "HTML" });
-            // eslint-disable-next-line no-empty
-          } catch (e) { }
-
-          let userName = userId.toString();
-          try {
-            const chat = await ctx.api.getChat(userId);
-            if (chat.type === "private") {
-              userName = [chat.first_name, chat.last_name].filter(Boolean).join(" ");
-            }
-            // eslint-disable-next-line no-empty
-          } catch (e) { }
-
-          await ctx.editMessageText(ctx.t("invite.approved-owner", { user: this.utils.escapeHTML(userName) }), { parse_mode: "HTML", reply_markup: undefined });
-        } catch (e) {
-          console.error(e);
-          await ctx.answerCallbackQuery({ text: ctx.t("error.command-failed") });
-        }
-      });
-
-      this.router.register("join-reject", async (ctx, payload) => {
-        if (!payload) return;
-        const [addressId, userIdStr] = payload.split("-");
-        const userId = parseInt(userIdStr, 10);
-
-        try {
-          const address = await Address.findById(addressId);
-          if (address) {
-            try {
-              const userLang = (await User.findOne({ telegram_id: userId }))?.language || "ru";
-              await ctx.api.sendMessage(userId, this.i18n.t(userLang, "invite.rejected-user", { address: this.utils.escapeHTML(address.name) }), { parse_mode: "HTML" });
-              // eslint-disable-next-line no-empty
-            } catch (e) { }
-          }
-
-          let userName = userId.toString();
-          try {
-            const chat = await ctx.api.getChat(userId);
-            if (chat.type === "private") {
-              userName = [chat.first_name, chat.last_name].filter(Boolean).join(" ");
-            }
-            // eslint-disable-next-line no-empty
-          } catch (e) { }
-
-          await ctx.editMessageText(ctx.t("invite.rejected-owner", { user: this.utils.escapeHTML(userName) }), { parse_mode: "HTML", reply_markup: undefined });
-          // eslint-disable-next-line no-empty
-        } catch (e) { }
-      });
+      this.router.register("join-approve", (ctx, ...args) => this.joinService.approveRequest(ctx, args[0], args[1]));
+      this.router.register("join-reject", (ctx, ...args) => this.joinService.rejectRequest(ctx, args[0], args[1]));
 
       this.on("callback_query:data", async (ctx) => {
         // Этот слушатель срабатывает последним, если MenuHandler не обработал кнопку.

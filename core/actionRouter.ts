@@ -1,40 +1,41 @@
 import type { CallbackContext } from "@app-types/index.js";
 import type BotClient from "@core/Client.js";
 
-type Handler<C> = (ctx: C, id?: string) => Promise<void>;
+ type Handler<C> = (ctx: C, ...args: string[]) => Promise<void>;
 
 export class ActionRouter<C extends CallbackContext> {
-	private routes: Map<string, Handler<C>> = new Map();
-	public readonly client: BotClient;
+  private routes: Map<string, Handler<C>> = new Map();
+  public readonly client: BotClient;
 
-	constructor(client: BotClient) {
-		this.client = client;
-	}
+  constructor(client: BotClient) {
+    this.client = client;
+  }
 
-	register(prefix: string, handler: Handler<C>) {
-		this.routes.set(prefix, handler);
-	}
+  register(prefix: string, handler: Handler<C>) {
+    this.routes.set(prefix, handler);
+  }
 
-	async handle(ctx: C) {
-		const data = ctx.callbackQuery.data;
+  async handle(ctx: C) {
+    const data = ctx.callbackQuery.data;
 
-		for (const [prefix, handler] of this.routes.entries()) {
-			if (data === prefix) {
-				return handler(ctx);
-			}
-			if (data.startsWith(prefix + "-")) {
-				const id = data.slice(prefix.length + 1);
-				return handler(ctx, id);
-			}
-		}
+    for (const [prefix, handler] of this.routes.entries()) {
+      if (data === prefix) {
+        return handler(ctx); // Вызов без аргументов
+      }
+      if (data.startsWith(prefix + "-")) {
+        const payload = data.slice(prefix.length + 1);
+        const args = payload.split("-");
+        return handler(ctx, ...args); // Вызов с разделенными аргументами
+      }
+    }
 
-		// fallback: меню навигация
-		const menu = this.client.menuManager.menus.get(data);
-		if (menu) {
-			if (menu.execute) return menu.execute(ctx);
-			return this.client.menuManager.showMenu(ctx, menu.id);
-		}
+    // fallback: меню навигация
+    const menu = this.client.menuManager.menus.get(data);
+    if (menu) {
+      if (menu.execute) return menu.execute(ctx);
+      return this.client.menuManager.showMenu(ctx, menu.id);
+    }
 
-		await ctx.answerCallbackQuery({ text: "❌ Неизвестное действие", show_alert: true });
-	}
+    await ctx.answerCallbackQuery({ text: "❌ Неизвестное действие", show_alert: true });
+  }
 }

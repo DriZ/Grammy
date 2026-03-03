@@ -172,6 +172,7 @@ create-reading =
   .error-exists = ❌ Показания за { $date } уже введены.
   .cancelled = ❌ Создание отменено.
   .error-value-lower = ❌ Введите число больше или равное предыдущему показанию ({ $prev }).
+  .ask-zone-value-with-date = Введите показания для зоны "{ $zone }" (предыдущее за { $prevDate }: { $prev }):
   .ask-zone-value = Введите показания для зоны "{ $zone }" (предыдущее: { $prev }):
   .success = ✅ Показания сохранены.
   .consumption = Потребление
