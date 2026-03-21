@@ -39,11 +39,13 @@ export class ReadingsMenu extends BaseMenu {
         if (totalConsumption > 0) {
           const unitKey = account.unit || EResource[account.resource].units[0];
 
-          consumptionText = ` | ${ctx.t("readings-menu.consumption")}: ${totalConsumption.toFixed(0)} ${ctx.t(unitKey)}`;
+          consumptionText = `${ctx.t("readings-menu.consumption")}: ${totalConsumption.toFixed(0)} ${ctx.t(unitKey)}`;
         }
       }
 
-      return `${ctx.t("readings-menu.title", { year: this.year.toString() })} (${EResource[account.resource].emoji ?? ""} №${ctx.escapeHTML(account.account_number)})${consumptionText}`;
+      return `${ctx.t("readings-menu.title", { year: this.year.toString() })} 
+${EResource[account.resource].emoji ?? ""} №${ctx.escapeHTML(account.account_number)}
+${consumptionText}`;
     };
   }
 
