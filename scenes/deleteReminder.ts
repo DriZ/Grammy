@@ -19,16 +19,21 @@ export default class DeleteReminderScene extends BaseScene {
     if (!reminder) return this.abort(ctx, ctx.t("error.not-found"));
 
     await this.confirmOrCancel(ctx, ctx.t("delete-reminder.confirm", { title: reminder.title }));
+    ctx.wizard.state.reminderTitle = reminder.title;
     return ctx.wizard.next();
   }
 
   private handleDeletion = async (ctx: CallbackContext) => {
     if (await this.checkCancel(ctx, ctx.t("delete-reminder.cancelled"), `reminder-${ctx.wizard.state.reminderId}`)) return;
     if (ctx.callbackQuery?.data === "confirm") {
-      await Reminder.findByIdAndDelete(ctx.wizard.state.reminderId);
-      const parentMenu = "reminders-menu";
-      ctx.services.menuManager.cleanupForDeletion(ctx, `reminder-${ctx.wizard.state.reminderId}`, parentMenu);
-      return this.abort(ctx, ctx.t("delete-reminder.success"), parentMenu);
+      try {
+        await Reminder.findByIdAndDelete(ctx.wizard.state.reminderId);
+        const parentMenu = "reminders-menu";
+        ctx.services.menuManager.cleanupForDeletion(ctx, `reminder-${ctx.wizard.state.reminderId}`, parentMenu);
+        return this.abort(ctx, ctx.t("delete-reminder.success", { title: ctx.wizard.state.reminderTitle }), parentMenu);
+      } catch (err) {
+        return this.handleError(ctx, err, ctx.t("delete-reminder.error", { title: ctx.wizard.state.reminderTitle }));
+      }
     }
   }
 }

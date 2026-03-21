@@ -1,4 +1,4 @@
-import { Address, type IAccount, UserAddress, type IUser } from "../models/index.js";
+import { Address, type IAccount, UserAddress, type IUser, Account } from "../models/index.js";
 import { type CallbackContext, EResource, type MenuButton } from "../types/index.js";
 import { BaseMenu } from "../core/structures/index.js";
 import type BotClient from "../core/Client.js";
@@ -21,7 +21,12 @@ export class AddressMenu extends BaseMenu {
 
       if (isOwner) {
         const inviteLink = `https://t.me/${ctx.me.username}?start=invite_${address._id}`;
-        const ownerDetails = ctx.t("address-menu.owner-details", { id: address._id.toString(), link: inviteLink });
+        const ownerDetails = ctx.t("address-menu.owner-details", { link: inviteLink });
+        const accounts = await Account.find({ address_id: this.addressId });
+        if (accounts.length > 0) {
+          const deleteInfo = ctx.t("address-menu.delete-info");
+          return `${baseTitle}\n\n${ownerDetails}\n\n${deleteInfo}`;
+        }
         return `${baseTitle}\n\n${ownerDetails}`;
       }
 

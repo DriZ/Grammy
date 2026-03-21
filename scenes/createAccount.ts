@@ -17,6 +17,8 @@ export default class CreateAccountScene extends BaseScene {
       this.handleMeterType,
       this.askUnit,
       this.handleUnit,
+      this.askArea,
+      this.handleArea,
       this.askCurrency,
       this.handleCurrency,
       this.handleAccountNumber
@@ -25,7 +27,8 @@ export default class CreateAccountScene extends BaseScene {
 
   // Шаг 0: выбор ресурса
   private askResource = async (ctx: CallbackContext) => {
-    await ctx.callbackQuery?.message?.editText(ctx.t("create-account.ask-resource"), {
+    ctx.wizard.state.message = ctx.callbackQuery?.message;
+    await ctx.wizard.state.message?.editText(ctx.t("create-account.ask-resource"), {
       reply_markup: new InlineKeyboard()
         .text(ctx.t("resource.electricity"), EResource.electricity.name)
         .text(ctx.t("resource.heating"), EResource.heating.name).row()
@@ -33,10 +36,11 @@ export default class CreateAccountScene extends BaseScene {
         .text(ctx.t("resource.gas"), EResource.gas.name).row()
         .text(ctx.t("resource.internet"), EResource.internet.name)
         .text(ctx.t("resource.garbage"), EResource.garbage.name).row()
+        .text(ctx.t("resource.rent"), EResource.rent.name)
         .text(ctx.t("resource.other"), EResource.other.name)
         .row()
-        .text(ctx.t("button.cancel"), "cancel"), 
-        parse_mode: "HTML"
+        .text(ctx.t("button.cancel"), "cancel"),
+      parse_mode: "HTML"
     });
     return ctx.wizard.next();
   };
@@ -58,8 +62,8 @@ export default class CreateAccountScene extends BaseScene {
           .text(ctx.t("meter-type.multi-zone"), MeterType.MULTI_ZONE)
           .row()
           .text(ctx.t("button.back"), "back")
-          .text(ctx.t("button.cancel"), "cancel"), 
-          parse_mode: "HTML"
+          .text(ctx.t("button.cancel"), "cancel"),
+        parse_mode: "HTML"
       });
       return ctx.wizard.next();
     }
@@ -90,15 +94,15 @@ export default class CreateAccountScene extends BaseScene {
     // Если единица измерения только одна, выбираем её автоматически и идем дальше
     if (units.length === 1) {
       ctx.wizard.state.unit = units[0];
-      return ctx.wizard.selectStep(ctx, 5); // перескакиваем на шаг выбора валюты
+      return ctx.wizard.selectStep(ctx, 7); // перескакиваем на шаг выбора валюты
     }
 
     const keyboard = new InlineKeyboard();
-    units.forEach((u) => keyboard.text(u, u).row());
+    units.forEach((u) => keyboard.text(ctx.t(u), u).row());
     keyboard.text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel");
 
     await ctx.wizard.state.message?.editText(ctx.t("create-account.ask-unit", { emoji: EResource[resource!].emoji, resource: resource! }), {
-      reply_markup: keyboard, 
+      reply_markup: keyboard,
       parse_mode: "HTML"
     });
     return ctx.wizard.next();
@@ -116,8 +120,8 @@ export default class CreateAccountScene extends BaseScene {
             .text(ctx.t("meter-type.single"), MeterType.SINGLE).row()
             .text(ctx.t("meter-type.day-night"), MeterType.DAY_NIGHT).row()
             .text(ctx.t("meter-type.multi-zone"), MeterType.MULTI_ZONE).row()
-            .text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"), 
-            parse_mode: "HTML"
+            .text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"),
+          parse_mode: "HTML"
         });
         return ctx.wizard.selectStep(ctx, 2);
       } else {
@@ -130,33 +134,84 @@ export default class CreateAccountScene extends BaseScene {
     if (!unit) return;
 
     ctx.wizard.state.unit = unit;
-    return ctx.wizard.selectStep(ctx, 5); // переходим к выбору валюты
+    ctx.wizard.state.message = ctx.callbackQuery.message;
+
+    const resource = ctx.wizard.state.resource;
+    if ((resource === 'rent' && unit === 'unit.m2') || ((resource === 'garbage' || resource === 'other') && (unit === 'unit.m2' || unit === 'unit.person'))) {
+      return ctx.wizard.next(); // переходим к вводу площади/количества
+    }
+    return ctx.wizard.selectStep(ctx, 7); // переходим к выбору валюты
   };
 
-  // Шаг 5: выбор валюты
+  // Шаг 5: ввод площади (только для Квартплаты с м²)
+  private askArea = async (ctx: CallbackContext) => {
+    const resource = ctx.wizard.state.resource;
+    const unit = ctx.wizard.state.unit;
+    const needsArea = (resource === 'rent' && unit === 'unit.m2') || ((resource === 'garbage' || resource === 'other') && (unit === 'unit.m2' || unit === 'unit.person'));
+    if (!needsArea) {
+      return ctx.wizard.selectStep(ctx, 7); // Пропускаем к выбору валюты
+    }
+    const promptKey = (resource === 'garbage' || resource === 'other') && unit === 'unit.person' ? "create-account.ask-persons" : "create-account.ask-area";
+    await ctx.wizard.state.message?.editText(ctx.t(promptKey), {
+      reply_markup: new InlineKeyboard().text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"),
+      parse_mode: "HTML"
+    });
+    return ctx.wizard.next();
+  };
+
+  // Шаг 6: обработка площади
+  private handleArea = async (ctx: CallbackContext) => {
+    if (await this.checkCancel(ctx, ctx.t("create-account.cancelled"))) return;
+
+    if (ctx.callbackQuery?.data === "back") {
+      return ctx.wizard.selectStep(ctx, 3); // Возврат к выбору единицы измерения
+    }
+
+    const area = parseFloat(ctx.msg?.text?.replace(",", ".") || "");
+    if (isNaN(area) || area <= 0) {
+      if (ctx.msg) await ctx.msg.delete();
+      await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), {
+        reply_markup: new InlineKeyboard().text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"),
+        parse_mode: "HTML"
+      });
+      return;
+    }
+
+    await ctx.msg?.delete();
+    ctx.wizard.state.area = area;
+    return ctx.wizard.next(); // Переходим к выбору валюты
+  };
+
+  // Шаг 7: выбор валюты
   private askCurrency = async (ctx: CallbackContext) => {
     await ctx.wizard.state.message?.editText(ctx.t("create-account.ask-currency"), {
       reply_markup: new InlineKeyboard()
         .text("🇺🇦 UAH", "UAH").text("🇺🇸 USD", "USD").text("🇪🇺 EUR", "EUR").row()
         .text("🇷🇺 RUB", "RUB").text("🇰🇿 KZT", "KZT").text("🇧🇾 BYN", "BYN").row()
-        .text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"), 
-        parse_mode: "HTML"
+        .text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"),
+      parse_mode: "HTML"
     });
     return ctx.wizard.next();
   };
 
-  // Шаг 6: обработка валюты
+  // Шаг 8: обработка валюты
   private handleCurrency = async (ctx: CallbackContext) => {
     if (await this.checkCancel(ctx, ctx.t("create-account.cancelled"))) return;
 
     // Обработка кнопки Назад
     if (ctx.callbackQuery?.data === "back") {
       const resource = ctx.wizard.state.resource;
+      const unit = ctx.wizard.state.unit;
       const units = EResource[resource!].units as readonly string[];
+
+      const needsArea = (resource === 'rent' && unit === 'unit.m2') || ((resource === 'garbage' || resource === 'other') && (unit === 'unit.m2' || unit === 'unit.person'));
+      if (needsArea) {
+        return ctx.wizard.selectStep(ctx, 5);
+      }
 
       // Если единиц несколько, возвращаемся к выбору единицы
       if (units.length > 1) {
-        return ctx.wizard.selectStep(ctx, 3);
+        return ctx.wizard.selectStep(ctx, 3); // к askUnit
       } else {
         // Если единица была выбрана автоматически, пропускаем шаг назад
         if (resource === EResource.electricity.name) {
@@ -165,8 +220,8 @@ export default class CreateAccountScene extends BaseScene {
               .text(ctx.t("meter-type.single"), MeterType.SINGLE).row()
               .text(ctx.t("meter-type.day-night"), MeterType.DAY_NIGHT).row()
               .text(ctx.t("meter-type.multi-zone"), MeterType.MULTI_ZONE).row()
-              .text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"), 
-              parse_mode: "HTML"
+              .text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"),
+            parse_mode: "HTML"
           });
           return ctx.wizard.selectStep(ctx, 2);
         } else {
@@ -181,10 +236,10 @@ export default class CreateAccountScene extends BaseScene {
     ctx.wizard.state.currency = currency;
 
     await ctx.callbackQuery?.message?.editText(
-      ctx.t("create-account.ask-number", { currency }), { 
-        reply_markup: new InlineKeyboard().text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"),
-        parse_mode: "HTML"
-      }
+      ctx.t("create-account.ask-number", { currency }), {
+      reply_markup: new InlineKeyboard().text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"),
+      parse_mode: "HTML"
+    }
     );
     return ctx.wizard.next();
   };
@@ -200,7 +255,7 @@ export default class CreateAccountScene extends BaseScene {
     if (!ctx.update.message?.text) {
       await ctx.wizard.state.message!.editText(
         ctx.t("create-account.ask-number-text"), {
-        reply_markup: new InlineKeyboard().text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"), 
+        reply_markup: new InlineKeyboard().text(ctx.t("button.back"), "back").text(ctx.t("button.cancel"), "cancel"),
         parse_mode: "HTML"
       }
       );
@@ -213,6 +268,7 @@ export default class CreateAccountScene extends BaseScene {
     const addressId = ctx.wizard.state.addressId;
     const currency = ctx.wizard.state.currency || "UAH";
     const unit = ctx.wizard.state.unit || EResource[resource!].units[0];
+    const area = ctx.wizard.state.area;
 
     await ctx.update.message?.delete().catch(() => { });
 
@@ -223,7 +279,8 @@ export default class CreateAccountScene extends BaseScene {
         address_id: addressId,
         meterType,
         currency,
-        unit
+        unit,
+        area
       });
 
       await this.abort(ctx, ctx.t("create-account.success", {

@@ -17,25 +17,22 @@ command =
 
 main-menu =
   .not-found = ❌ Главное меню не найдено
-  .title = 👋 Привет! Выберите действие:
+  .title = 🏠 Вы в меню коммунальных услуг. Выберите действие:
   .button-ping = 🏓 Пинг
   .button-whoami = 👤 Обо мне
   .button-myid = 🆔 Мой айди
-  .button-commands = 🤖 Команды
-utilities-menu = 
-  .title = ⚙️ Коммунальные услуги
+  .button-stats = 📊 Статистика
+  .button-version = ℹ️ Версия
 account-menu =
   .title = Меню счёта №
 address-menu =
   .title = 📋 Счета по адресу <b>{ $address }</b>
   .owner-details =
-    #️⃣ <b>ID:</b> <code>{ $id }</code>
     🔗 <b>Ссылка-приглашение:</b>
     <code>{ $link }</code>
     
-    ℹ️ <i>Чтобы поделиться адресом, передайте этот ID или ссылку другому пользователю.</i>
-
-    ℹ️ <i>Чтобы удалить этот адрес, сначала удалите в нём все счета.</i>
+    ℹ️ <i>Чтобы поделиться адресом, передайте эту ссылку другому пользователю.</i>
+  .delete-info = ℹ️ <i>Чтобы удалить этот адрес, сначала удалите в нём все счета.</i>
 readings-menu =
   .title = 📊 Показания за <b>{ $year }</b> год
   .consumption = Потребление
@@ -130,6 +127,25 @@ units =
   .water = м³
   .gas = м³
 
+unit =
+  .kwh = кВт·ч
+  .kwh_alt = kWh
+  .m3 = м³
+  .l = л
+  .gal = гал
+  .ft3 = ft³
+  .gcal = Гкал
+  .gj = ГДж
+  .mwh = МВт·ч
+  .month = мес.
+  .day = день
+  .person = чел.
+  .m2 = м²
+  .unit = ед.
+  .piece = шт.
+  .service = услуга
+  .therm = терм
+
 language-select-title = 🌐 Выберите язык:
 language-selected = ✅ Язык успешно изменен!
 
@@ -141,6 +157,7 @@ resource =
   .internet = 🌐 Интернет
   .garbage = 🗑️ Мусор
   .other = 📦 Другое
+  .rent = 🏠 Квартплата
 
 meter-type =
   .single = Однотарифный
@@ -150,6 +167,8 @@ meter-type =
 create-account =
   .ask-resource = Выберите тип ресурса:
   .cancelled = ❌ Создание счёта отменено.
+  .ask-persons = 👥 Введите количество человек:
+  .ask-area = 🏙️ Введите площадь в м²:
   .ask-meter-type = Выберите тип счётчика:
   .ask-unit = Выберите единицу измерения для { $emoji } { $resource }:
   .ask-currency = Выберите валюту:
@@ -198,14 +217,14 @@ create-fixed-fee =
   .error = ❌ Ошибка при сохранении.
 
 change-currency =
-  .ask = Текущая валюта: { $current }
+  .ask = ℹ️ Текущая валюта: { $current }
     Выберите новую валюту:
   .cancelled = ❌ Изменение валюты отменено.
   .success = ✅ Валюта успешно изменена на { $currency }.
   .error = ❌ Ошибка при обновлении валюты.
 
 change-unit =
-  .ask = Текущая единица измерения: { $current }
+  .ask = ℹ️ Текущая единица измерения: { $current }
     Выберите новую:
   .cancelled = ❌ Изменение отменено.
   .success = ✅ Единица измерения изменена на { $unit }.
@@ -214,36 +233,37 @@ change-unit =
 delete-account =
   .error-no-id = ❌ Ошибка: не удалось определить счёт для удаления.
   .error-not-found = ❌ Ошибка: не удалось найти счёт в БД для удаления.
-  .confirm = Вы уверены, что хотите удалить счёт { $account }?
+  .confirm = ⚠️ Вы уверены, что хотите удалить счёт { $account }?
   .cancelled = ❌ Удаление отменено.
-  .success = ✅ Счёт и все связанные данные успешно удалены.
+  .success = ✅ Счёт { $account } и все связанные данные успешно удалены.
 
 delete-address =
   .error-no-id = ❌ Ошибка: не удалось определить адрес для удаления.
   .error-not-found = ❌ Ошибка: не удалось найти адрес в БД для удаления.
-  .confirm = Вы уверены, что хотите удалить адрес { $address }?
-  .confirm-unlink = Вы уверены, что хотите отвязать адрес { $address } от своего профиля?
+  .confirm = ⚠️ Вы уверены, что хотите удалить адрес { $address }?
+  .confirm-unlink = ⚠️ Вы уверены, что хотите отвязать адрес { $address } от своего профиля?
   .cancelled = ❌ Удаление отменено.
-  .success-all = ✅ Адрес и все связанные данные успешно удалены.
-  .success-unlinked = ✅ Адрес отвязан от вашего профиля.
-  .error = ❌ Ошибка при удалении адреса.
+  .success-all = ✅ Адрес { $address } и все связанные данные успешно удалены.
+  .success-unlinked = ✅ Адрес { $address } отвязан от вашего профиля.
+  .error = ❌ Ошибка при удалении адреса { $address }.
 
 delete-reading =
   .error-no-id = ❌ Ошибка: не удалось определить показание для удаления.
   .error-not-found = ❌ Ошибка: не удалось найти показания в БД для удаления.
-  .confirm = Вы уверены, что хотите удалить показания за { $date }?
+  .confirm = ⚠️ Вы уверены, что хотите удалить показания за { $date }?
   .cancelled = ❌ Удаление отменено.
-  .success = ✅ Показания успешно удалены.
+  .success = ✅ Показания за { $date } успешно удалены.
 
 delete-tariff =
   .error-no-id = ❌ Ошибка: не удалось определить тариф для удаления.
   .error-not-found = ❌ Ошибка: не удалось найти тариф в БД для удаления.
-  .confirm = Вы уверены, что хотите удалить тариф { $type }?
+  .confirm = ⚠️ Вы уверены, что хотите удалить тариф { $type }?
   .cancelled = ❌ Удаление отменено.
-  .success = ✅ Тариф успешно удалён.
+  .success = ✅ Тариф { $type } успешно удалён.
+  .error = ❌ Ошибка при удалении тарифа { $type }.
 
 delete-fixed-fee =
-  .confirm = Удалить абонплату { $amount }?
+  .confirm = ⚠️ Удалить абонплату { $amount }?
   .cancelled = ❌ Отменено.
   .success = ✅ Удалено.
 
@@ -254,16 +274,23 @@ calculate-bill =
   .ask-month-year = 📅 Выберите месяц для расчета ({ $year }):
   .error-no-accounts = ❌ По этому адресу нет счетов.
   .bill-header = 🧾 Расчет по счету <b>{ $account }</b> за <b>{ $date }</b>
-  .total = <b>ИТОГО К ОПЛАТЕ: { $amount }</b>
+  .total = <b>ИТОГО К ОПЛАТЕ: { $amount } { $currency }</b>
   .summary-header = 🧾 Сводный расчет за <b>{ $date }</b>
   .account-header = <b>Счет { $account } ({ $emoji })</b>
-  .account-total =   - <b>Итог по счету: { $amount }</b>
-  .grand-total = <b>💰 ОБЩИЙ ИТОГ: { $amount }</b>
+  .account-total =   - <b>Итог по счету: { $amount } { $currency }</b>
+  .grand-total = <b>💰 ОБЩИЙ ИТОГ: { $amount } { $currency }</b>
   .error-readings-not-found = Показания не найдены
   .error-prev-readings-not-found = Не найдены показания за предыдущий месяц ({ $date })
   .error-tariff-not-found = Не найден действующий тариф
+  .error-no-area = ❌ Не указана площадь для этого счёта.
+  .error-tariff-zone-not-found = ❌ Не найдена тарифная зона.
   .error-negative-consumption = Отрицательное потребление для зоны "{ $zone }"
+  .error-no-persons = ❌ Не указано количество человек для этого счёта.
   .line-zone =   - Зона "{ $zone }": { $consumption } { $unit } x { $price } = <b>{ $cost }</b>
+  .line-area =   - Площадь: { $area } { $unit } × { $price } = <b>{ $cost }</b>
+  .line-persons = - Кол-во человек: { $persons } { $unit } × { $price } = <b>{ $cost }</b>
+  .line-unit-service = - Услуга: { $quantity } { $unit } × { $price } = <b>{ $cost }</b>
+  .line-internet = - Интернет: { $consumption } { $unit } × { $price } = <b>{ $cost }</b>
   .line-fixed-fee =   - ➕ Абонплата: <b>{ $amount }</b>
 
 broadcast =
@@ -274,19 +301,17 @@ broadcast =
     Ошибок: { $failure }
 
 transfer-address =
-  .ask-id = 🆔 Введите Telegram ID нового владельца:
-  .error-invalid-id = ❌ Некорректный ID. Введите число.
   .error-user-not-found = ❌ Пользователь с таким ID не найден в базе бота. Попросите его сначала запустить бота.
-  .error-self-transfer = ❌ Вы не можете передать адрес самому себе.
-  .confirm = Вы уверены, что хотите передать права на адрес <b>{ $address }</b> пользователю <b>{ $user }</b>?
+  .confirm = ⚠️ Вы уверены, что хотите передать права на адрес <b>{ $address }</b> пользователю <b>{ $user }</b>?
   .cancelled = ❌ Передача прав отменена.
-  .success = ✅ Права на адрес успешно переданы.
-  .error = ❌ Ошибка при передаче прав.
+  .success = ✅ Права на адрес <b>{ $address }</b> успешно переданы пользователю <b>{ $user }</b>.
+  .error = ❌ Ошибка при передаче прав на адрес <b>{ $address }</b> пользователю <b>{ $user }</b>.
 
 kick-user =
-  .confirm = Вы уверены, что хотите исключить пользователя <b>{ $user }</b> из адреса <b>{ $address }</b>?
-  .success = ✅ Пользователь исключен.
-  .error = ❌ Ошибка при исключении пользователя.
+  .confirm = ⚠️ Вы уверены, что хотите исключить пользователя <b>{ $user }</b> из адреса <b>{ $address }</b>?
+  .success = ✅ Пользователь <b>{ $user }</b> исключен из адреса <b>{ $address }</b>.
+  .error = ❌ Ошибка при исключении пользователя <b>{ $user }</b> из адреса <b>{ $address }</b>.
+  .cancelled = ❌ Исключение пользователя <b>{ $user }</b> из адреса <b>{ $address }</b> отменено.
 
 invite =
   .success = ✅ Вы успешно присоединились к адресу <b>{ $address }</b>.
@@ -313,8 +338,9 @@ create-reminder =
 
 delete-reminder =
   .confirm = Удалить напоминание <b>{ $title }</b>?
-  .success = ✅ Напоминание удалено.
+  .success = ✅ Напоминание <b>{ $title }</b> удалено.
   .cancelled = ❌ Удаление отменено.
+  .error = ❌ Ошибка при удалении напоминания <b>{ $title }</b>.
 
 set-timezone =
   .ask = Выберите ваш часовой пояс из списка или отправьте геолокацию:

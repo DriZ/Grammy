@@ -29,13 +29,10 @@ export default class TransferAddressScene extends BaseScene {
 
     const targetUser = await User.findOne({ telegram_id: targetUserId });
     if (!targetUser) {
-      await ctx.reply(ctx.t("transfer-address.error-user-not-found"), { reply_markup: cancelBtn(ctx) });
+      await ctx.callbackQuery?.message?.editText(ctx.t("transfer-address.error-user-not-found"), { reply_markup: cancelBtn(ctx) });
       return;
     }
 
-    ctx.wizard.state.address = address;
-    ctx.wizard.state.targetUser = targetUser;
-    ctx.wizard.state.message = ctx.callbackQuery?.message;
 
     // Получаем информацию о пользователе из Telegram, так как в БД только ID
     let displayName = targetUserId.toString();
@@ -51,6 +48,11 @@ export default class TransferAddressScene extends BaseScene {
 
     const addressName = ctx.escapeHTML(ctx.wizard.state.address.name);
     const userName = ctx.escapeHTML(displayName);
+    ctx.wizard.state.address = address;
+    ctx.wizard.state.targetUser = targetUser;
+    ctx.wizard.state.message = ctx.callbackQuery?.message;
+    ctx.wizard.state.addressName = addressName;
+    ctx.wizard.state.userName = userName;
 
     await ctx.wizard.state.message?.editText(
       ctx.t("transfer-address.confirm", { address: addressName, user: userName }),
@@ -68,9 +70,8 @@ export default class TransferAddressScene extends BaseScene {
   private executeTransfer = async (ctx: CallbackContext) => {
     if (await this.checkCancel(ctx, ctx.t("transfer-address.cancelled"), `address-${ctx.wizard.state.addressId}`)) return;
 
+    const { addressId, targetUser, addressName, userName } = ctx.wizard.state
     if (ctx.callbackQuery?.data === "confirm") {
-      const addressId = ctx.wizard.state.addressId;
-      const targetUser = ctx.wizard.state.targetUser;
 
       try {
         await Address.findByIdAndUpdate(addressId, { ownerId: targetUser.telegram_id });
@@ -82,10 +83,10 @@ export default class TransferAddressScene extends BaseScene {
           { upsert: true, new: true }
         );
 
-        return this.abort(ctx, ctx.t("transfer-address.success"), `address-${addressId}`);
+        return this.abort(ctx, ctx.t("transfer-address.success", { user: userName, address: addressName }), `address-${addressId}`);
       } catch (e) {
         console.error(e);
-        return this.handleError(ctx, e, ctx.t("transfer-address.error"));
+        return this.handleError(ctx, e, ctx.t("transfer-address.error", { user: userName, address: addressName }));
       }
     }
   }

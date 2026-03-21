@@ -154,9 +154,9 @@ export interface MyWizardState {
   minute: number;
 }
 
-export interface SceneRoutesData { 
-  prefix: string; 
-  stateKeys: (keyof MyWizardState)[] 
+export interface SceneRoutesData {
+  prefix: string;
+  stateKeys: (keyof MyWizardState)[]
 }
 
 /**
@@ -202,43 +202,48 @@ export interface IEvent {
 }
 
 /**
- * Возвращает имя и эмодзи типа ресурса
+ * Возвращает имя, эмодзи и единицы измерения типа ресурса
  */
 export const EResource = {
   electricity: {
     name: "electricity",
     emoji: "⚡️",
-    units: ["кВт·ч", "kWh"],
+    units: ["unit.kwh", "unit.kwh_alt"],
   },
   water: {
     name: "water",
     emoji: "💧",
-    units: ["м³", "л", "гал", "ft³"],
+    units: ["unit.m3", "unit.l", "unit.gal", "unit.ft3"],
   },
   gas: {
     name: "gas",
     emoji: "🔥",
-    units: ["м³", "л", "кВт·ч", "kWh", "ft³", "therm"],
+    units: ["unit.m3", "unit.l", "unit.kwh", "unit.kwh_alt", "unit.ft3", "unit.therm"],
   },
   heating: {
     name: "heating",
     emoji: "🌡️",
-    units: ["Гкал", "ГДж", "кВт·ч", "МВт·ч"],
+    units: ["unit.gcal", "unit.gj", "unit.kwh", "unit.mwh"],
   },
   internet: {
     name: "internet",
     emoji: "🌐",
-    units: ["мес.", "день"],
+    units: ["unit.month", "unit.day"],
   },
   garbage: {
     name: "garbage",
     emoji: "🗑️",
-    units: ["чел.", "м²", "ед."],
+    units: ["unit.person", "unit.m2", "unit.unit"],
+  },
+  rent: {
+    name: "rent",
+    emoji: "🏠",
+    units: ["unit.m2", "unit.service"],
   },
   other: {
     name: "other",
     emoji: "📦",
-    units: ["ед.", "шт."],
+    units: ["unit.unit", "unit.piece", "unit.m2", "unit.person"],
   },
 } as const;
 

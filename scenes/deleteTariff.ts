@@ -26,22 +26,27 @@ export default class DeleteTariffScene extends BaseScene {
     ctx.wizard.state.accountId = tariff.account_id.toString();
 
     await this.confirmOrCancel(ctx, ctx.t("delete-tariff.confirm", { type: tariff.type }));
+    ctx.wizard.state.tariffType = tariff.type;
     return ctx.wizard.next();
   }
 
   private handleDeletion = async (ctx: CallbackContext) => {
     if (await this.checkCancel(ctx, ctx.t("delete-tariff.cancelled"), `tariff-${ctx.wizard.state.tariffId}`)) return;
     if (ctx.callbackQuery?.data === "confirm") {
-      const tariffId = ctx.wizard.state.tariffId;
-      await Tariff.findByIdAndDelete(tariffId);
+      try {
+        const tariffId = ctx.wizard.state.tariffId;
+        await Tariff.findByIdAndDelete(tariffId);
 
-      const accountId = ctx.wizard.state.accountId;
-      const parentMenu = `tariffs-${accountId}`;
-      const deletedMenu = `tariff-${tariffId}`;
+        const accountId = ctx.wizard.state.accountId;
+        const parentMenu = `tariffs-${accountId}`;
+        const deletedMenu = `tariff-${tariffId}`;
 
-      ctx.services.menuManager.cleanupForDeletion(ctx, deletedMenu, parentMenu);
+        ctx.services.menuManager.cleanupForDeletion(ctx, deletedMenu, parentMenu);
 
-      return this.abort(ctx, ctx.t("delete-tariff.success"), parentMenu);
+        return this.abort(ctx, ctx.t("delete-tariff.success", { type: ctx.wizard.state.tariffType }), parentMenu);
+      } catch (err) {
+        return this.handleError(ctx, err, ctx.t("delete-tariff.error", { type: ctx.wizard.state.tariffType }));
+      }
     }
     return
   }

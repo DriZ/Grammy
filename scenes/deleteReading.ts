@@ -28,8 +28,9 @@ export default class DeleteReadingScene extends BaseScene {
     }
 
     ctx.wizard.state.accountId = reading.account_id.toString();
+    ctx.wizard.state.readingDate = `${reading.month}.${reading.year}`;
 
-    await this.confirmOrCancel(ctx, ctx.t("delete-reading.confirm", { date: `${reading.month}.${reading.year}` }));
+    await this.confirmOrCancel(ctx, ctx.t("delete-reading.confirm", { date: ctx.wizard.state.readingDate }));
     return ctx.wizard.next();
   }
 
@@ -45,7 +46,7 @@ export default class DeleteReadingScene extends BaseScene {
 
       ctx.services.menuManager.cleanupForDeletion(ctx, deletedMenu, parentMenu);
 
-      return this.abort(ctx, ctx.t("delete-reading.success"), parentMenu);
+      return this.abort(ctx, ctx.t("delete-reading.success", { date: ctx.wizard.state.readingDate }), parentMenu);
     }
     return
   }

@@ -18,13 +18,16 @@ export class AccountMenu extends BaseMenu {
 
   get buttons() {
     return async (ctx: CallbackContext): Promise<MenuButton[]> => {
-      const btns: MenuButton[] = [
-        { text: (ctx) => ctx.t("button.tariffs"), nextMenu: `tariffs-${this.accountId}`, callback: `tariffs-${this.accountId}`, row: true },
-        { text: (ctx) => ctx.t("button.fixed-fees"), nextMenu: `fixed-fees-${this.accountId}`, callback: `fixed-fees-${this.accountId}`, row: true },
-        { text: (ctx) => ctx.t("button.calculate-bill"), callback: `calculate-bill-${this.accountId}`, row: true },
-        { text: (ctx) => ctx.t("button.readings"), nextMenu: `readings-${this.accountId}`, callback: `readings-${this.accountId}`, row: true },
-        { text: (ctx) => ctx.t("button.currency"), callback: `change-currency-${this.accountId}`, row: true },
-      ];
+      const btns: MenuButton[] = []
+      btns.push({ text: (ctx) => ctx.t("button.tariffs"), nextMenu: `tariffs-${this.accountId}`, callback: `tariffs-${this.accountId}`, row: true })
+      btns.push({ text: (ctx) => ctx.t("button.fixed-fees"), nextMenu: `fixed-fees-${this.accountId}`, callback: `fixed-fees-${this.accountId}`, row: true })
+      btns.push({ text: (ctx) => ctx.t("button.calculate-bill"), callback: `calculate-bill-${this.accountId}`, row: true })
+
+      const nonMeteredResources = ['rent', 'internet', 'garbage', 'other'];
+      if (!nonMeteredResources.includes(this.account.resource)) {
+        btns.push({ text: (ctx) => ctx.t("button.readings"), nextMenu: `readings-${this.accountId}`, callback: `readings-${this.accountId}`, row: true });
+      }
+      btns.push({ text: (ctx) => ctx.t("button.currency"), callback: `change-currency-${this.accountId}`, row: true })
 
       // Показываем кнопку смены единицы измерения только если для ресурса доступно более одной единицы
       if (EResource[this.account.resource].units.length > 1) {

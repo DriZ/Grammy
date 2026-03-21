@@ -1,4 +1,5 @@
 import cron from "node-cron";
+import mongoose from "mongoose";
 import { User, UserAddress, Account, UtilitiesReading, Reminder } from "@models/index.js";
 import type BotClient from "@core/Client.js";
 import { InlineKeyboard } from "grammy";
@@ -20,6 +21,13 @@ export class ReminderService {
 
   private async sendReminders() {
     const now = new Date();
+
+    // Добавляем проверку состояния подключения к БД
+    // 1 = connected
+    if (mongoose.connection.readyState !== 1) {
+      console.warn("⚠️ ReminderService: MongoDB is not connected. Skipping reminder check.");
+      return;
+    }
 
     try {
       // 1. Находим все активные напоминания
@@ -91,7 +99,7 @@ export class ReminderService {
             });
 
             const keyboard = new InlineKeyboard()
-              .text(this.client.i18n.t(lang, "utilities-menu.title"), "utilities-menu"); // Или ссылка на utilities-menu
+              .text(this.client.i18n.t(lang, "main-menu.title"), "main-menu");
 
             await this.client.api.sendMessage(userId, message, {
               parse_mode: "HTML",

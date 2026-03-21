@@ -43,6 +43,7 @@ export default class DeleteAddressScene extends BaseScene {
       reply_markup: new InlineKeyboard().text(buttonText, "confirm").danger().text(ctx.t("button.cancel"), "cancel"), 
       parse_mode: "HTML"
     });
+    ctx.wizard.state.addressName = address.name;
     return ctx.wizard.next();
   }
 
@@ -54,8 +55,8 @@ export default class DeleteAddressScene extends BaseScene {
       try {
         const result = await deleteAddress(addressId, ctx.from.id);
         const msg = result.deletedAll
-          ? ctx.t("delete-address.success-all")
-          : ctx.t("delete-address.success-unlinked");
+          ? ctx.t("delete-address.success-all", { address: ctx.wizard.state.addressName })
+          : ctx.t("delete-address.success-unlinked", { address: ctx.wizard.state.addressName });
 
         const deletedMenu = `address-${addressId}`;
 
@@ -63,7 +64,7 @@ export default class DeleteAddressScene extends BaseScene {
 
         return this.abort(ctx, msg);
       } catch (err) {
-        return this.handleError(ctx, err, ctx.t("delete-address.error"));
+        return this.handleError(ctx, err, ctx.t("delete-address.error", { address: ctx.wizard.state.addressName }));
       }
     }
     return
