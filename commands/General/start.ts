@@ -45,9 +45,10 @@ export default class StartCommand extends BaseCommand {
     const buttons = typeof mainMenu.buttons === "function" ? await mainMenu.buttons(ctx) : mainMenu.buttons;
     for (const b of buttons) {
       const buttonText = await ctx.resolveText(b.text);
-      keyboard.text(buttonText, b.callback || b.nextMenu || "noop").row();
+      keyboard.text(buttonText, b.callback || b.nextMenu || "noop");
+      if (b.style) keyboard.style(b.style);
+      if (b.row) keyboard.row();
     }
-    keyboard.text(ctx.t("main-menu.button-commands")).row();
 
     if (ctx.from) {
       const user = await User.findOne({ telegram_id: ctx.from.id });

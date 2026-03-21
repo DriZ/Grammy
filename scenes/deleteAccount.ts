@@ -24,6 +24,7 @@ export default class deleteAccountScene extends BaseScene {
     const account = await Account.findById(accountId);
     if (!account) return this.abort(ctx, ctx.t("delete-account.error-not-found"));
     ctx.wizard.state.addressId = account.address_id.toString();
+    ctx.wizard.state.accountNumber = account.account_number;
 
     await this.confirmOrCancel(ctx, ctx.t("delete-account.confirm", { account: account.account_number }))
     return ctx.wizard.next();
@@ -42,7 +43,7 @@ export default class deleteAccountScene extends BaseScene {
 
       ctx.services.menuManager.cleanupForDeletion(ctx, deletedMenu, parentMenu);
 
-      return this.abort(ctx, ctx.t("delete-account.success"), parentMenu);
+      return this.abort(ctx, ctx.t("delete-account.success", { account: ctx.wizard.state.accountNumber! }), parentMenu);
     }
     return
   }

@@ -38,9 +38,9 @@ export class ReadingsMenu extends BaseMenu {
         }
 
         if (totalConsumption > 0) {
-          const unit = account.unit || EResource[account.resource].units[0];
+          const unitKey = account.unit || EResource[account.resource].units[0];
 
-          consumptionText = ` | ${ctx.t("readings-menu.consumption")}: ${totalConsumption.toFixed(0)} ${unit}`;
+          consumptionText = ` | ${ctx.t("readings-menu.consumption")}: ${totalConsumption.toFixed(0)} ${ctx.t(unitKey)}`;
         }
       }
 

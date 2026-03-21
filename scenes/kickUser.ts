@@ -39,6 +39,9 @@ export default class KickUserScene extends BaseScene {
     const addressName = ctx.escapeHTML(address.name);
     const userName = ctx.escapeHTML(displayName);
 
+    ctx.wizard.state.addressName = addressName;
+    ctx.wizard.state.userName = userName;
+
     const text = ctx.t("kick-user.confirm", { user: userName, address: addressName });
 
     await ctx.callbackQuery?.message?.editText(text, {
@@ -52,18 +55,18 @@ export default class KickUserScene extends BaseScene {
   }
 
   private executeKick = async (ctx: CallbackContext) => {
-    const { addressId, targetUserId } = ctx.wizard.state;
+    const { addressId, targetUserId, addressName, userName } = ctx.wizard.state;
     const backMenu = `address-users-${addressId}`;
 
-    if (await this.checkCancel(ctx, ctx.t("scene.action-canceled"), backMenu)) return;
+    if (await this.checkCancel(ctx, ctx.t("kick-user.cancelled", { user: userName, address: addressName }), backMenu)) return;
 
     if (ctx.callbackQuery?.data === "confirm") {
       try {
         await UserAddress.findOneAndDelete({ address_id: addressId, telegram_id: targetUserId });
-        return this.abort(ctx, ctx.t("kick-user.success"), backMenu);
+        return this.abort(ctx, ctx.t("kick-user.success", { user: userName, address: addressName }), backMenu);
       } catch (e) {
         console.error(e);
-        return this.handleError(ctx, e, ctx.t("kick-user.error"));
+        return this.handleError(ctx, e, ctx.t("kick-user.error", { user: userName, address: addressName }));
       }
     }
   }

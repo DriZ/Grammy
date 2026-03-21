@@ -67,7 +67,7 @@ export default class CreateAddressScene extends BaseScene {
         // Address was found by ID. Check if user is already linked.
         const userAddress = await UserAddress.findOne({ telegram_id: telegramId, address_id: address._id });
         if (userAddress) {
-          return this.abort(ctx, ctx.t("create-address.already-exists", { address: address.name }), "utilities-menu");
+          return this.abort(ctx, ctx.t("create-address.already-exists", { address: address.name }));
         }
       } else {
         // Input was not a valid/existing ID. Treat the original input as a name for a new address.
@@ -79,7 +79,7 @@ export default class CreateAddressScene extends BaseScene {
         address_id: address._id,
       });
 
-      return this.abort(ctx, ctx.t("create-address.success", { address: address.name }), "utilities-menu");
+      return this.abort(ctx, ctx.t("create-address.success", { address: address.name }));
     } catch (error) {
       console.error(error);
       return this.handleError(ctx, error, ctx.t("create-address.error"));

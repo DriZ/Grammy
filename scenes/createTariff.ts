@@ -35,9 +35,9 @@ export default class CreateTariffScene extends BaseScene {
 
     await ctx.wizard.state.message?.editText(
       ctx.t("create-tariff.ask-date", { year: currentYear }), {
-        reply_markup: this.makeYearMonthKeyboard(currentYear),
-        parse_mode: "HTML"
-      }
+      reply_markup: this.makeYearMonthKeyboard(currentYear),
+      parse_mode: "HTML"
+    }
     );
     return ctx.wizard.next();
   };
@@ -50,9 +50,9 @@ export default class CreateTariffScene extends BaseScene {
       ctx.wizard.state.selectedYear = parseInt(yearData[1], 10);
       await ctx.callbackQuery?.message?.editText(
         ctx.t("create-tariff.ask-date", { year: ctx.wizard.state.selectedYear }), {
-          reply_markup: this.makeYearMonthKeyboard(ctx.wizard.state.selectedYear), 
-          parse_mode: "HTML"
-        },
+        reply_markup: this.makeYearMonthKeyboard(ctx.wizard.state.selectedYear),
+        parse_mode: "HTML"
+      },
       );
       return; // Остаемся на этом шаге
     }
@@ -79,7 +79,8 @@ export default class CreateTariffScene extends BaseScene {
       ctx.wizard.state.type = type;
       ctx.wizard.state.zones = [];
       const curr = account.currency;
-      const unit = account.unit || EResource[account.resource].units[0];
+      const unitKey = account.unit || EResource[account.resource].units[0];
+      const unit = ctx.t(unitKey);
 
       const prompt = type === MeterType.SINGLE
         ? ctx.t("create-tariff.ask-price", { curr, unit })
@@ -101,7 +102,7 @@ export default class CreateTariffScene extends BaseScene {
     if (!ctx.msg?.text) {
       if (ctx.msg) await ctx.msg.delete();
       await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), {
-        reply_markup: cancelBtn(ctx), 
+        reply_markup: cancelBtn(ctx),
         parse_mode: "HTML"
       });
       return;
@@ -111,7 +112,7 @@ export default class CreateTariffScene extends BaseScene {
     if (isNaN(price) || price < 0) {
       if (ctx.msg) await ctx.msg.delete();
       await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), {
-        reply_markup: cancelBtn(ctx), 
+        reply_markup: cancelBtn(ctx),
         parse_mode: "HTML"
       });
       return;
@@ -128,9 +129,10 @@ export default class CreateTariffScene extends BaseScene {
     if (type === MeterType.DAY_NIGHT) {
       ctx.wizard.state.zones = [{ name: "day", price }];
       const account = await Account.findById(ctx.wizard.state.accountId);
-      const unit = account?.unit || EResource[account!.resource].units[0];
+      const unitKey = account?.unit || EResource[account!.resource].units[0];
+      const unit = ctx.t(unitKey);
       await ctx.wizard.state.message?.editText(ctx.t("create-tariff.ask-price-night", { curr: account!.currency, unit }), {
-        reply_markup: cancelBtn(ctx), 
+        reply_markup: cancelBtn(ctx),
         parse_mode: "HTML"
       });
       return ctx.wizard.next();
@@ -139,9 +141,10 @@ export default class CreateTariffScene extends BaseScene {
     if (type === MeterType.MULTI_ZONE) {
       ctx.wizard.state.zones = [{ name: "peak", price }];
       const account = await Account.findById(ctx.wizard.state.accountId);
-      const unit = account?.unit || EResource[account!.resource].units[0];
+      const unitKey = account?.unit || EResource[account!.resource].units[0];
+      const unit = ctx.t(unitKey);
       await ctx.wizard.state.message?.editText(ctx.t("create-tariff.ask-price-half-peak", { curr: account!.currency, unit }), {
-        reply_markup: cancelBtn(ctx), 
+        reply_markup: cancelBtn(ctx),
         parse_mode: "HTML"
       });
       return ctx.wizard.next();
@@ -156,7 +159,7 @@ export default class CreateTariffScene extends BaseScene {
     if (isNaN(price) || price < 0) {
       if (ctx.msg) await ctx.msg.delete();
       await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), {
-        reply_markup: cancelBtn(ctx), 
+        reply_markup: cancelBtn(ctx),
         parse_mode: "HTML"
       });
       return;
@@ -173,9 +176,10 @@ export default class CreateTariffScene extends BaseScene {
     if (type === MeterType.MULTI_ZONE) {
       ctx.wizard.state.zones.push({ name: "half-peak", price });
       const account = await Account.findById(ctx.wizard.state.accountId);
-      const unit = account?.unit || EResource[account!.resource].units[0];
+      const unitKey = account?.unit || EResource[account!.resource].units[0];
+      const unit = ctx.t(unitKey);
       await ctx.wizard.state.message?.editText(ctx.t("create-tariff.ask-price-night", { curr: account!.currency, unit }), {
-        reply_markup: cancelBtn(ctx), 
+        reply_markup: cancelBtn(ctx),
         parse_mode: "HTML"
       });
       return ctx.wizard.next();
@@ -190,7 +194,7 @@ export default class CreateTariffScene extends BaseScene {
     if (isNaN(price) || price < 0) {
       if (ctx.msg) await ctx.msg.delete();
       await ctx.wizard.state.message?.editText(ctx.t("error.invalid-number"), {
-        reply_markup: cancelBtn(ctx), 
+        reply_markup: cancelBtn(ctx),
         parse_mode: "HTML"
       });
       return;

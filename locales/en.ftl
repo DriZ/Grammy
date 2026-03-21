@@ -17,25 +17,22 @@ command =
 
 main-menu =
   .not-found = ❌ Main menu not found
-  .title = 👋 Hello! Select an action:
+  .title = 🏠 You are in the utilities menu. Choose an action:
   .button-ping = 🏓 Ping
   .button-whoami = 👤 Who am I
   .button-myid = 🆔 My ID
-  .button-commands = 🤖 Commands
-utilities-menu =
-  .title = ⚙️ Utilities
+  .button-stats = 📊 Stats
+  .button-version = ℹ️ Version
 account-menu =
   .title = Account menu #
 address-menu =
   .title = 📋 Accounts at <b>{ $address }</b>
   .owner-details =
-    #️⃣ <b>ID:</b> <code>{ $id }</code>
     🔗 <b>Invite Link:</b>
     <code>{ $link }</code>
     
-    ℹ️ <i>To share an address, give this ID or Link to another user.</i>
-
-    ℹ️ <i> To delete this address, first delete all accounts in it.</i>
+    ℹ️ <i>To share an address, give this Link to another user.</i>
+  .delete-info = ℹ️ <i>To delete this address, first delete all accounts in it.</i>
 readings-menu =
   .title = 📊 Meter readings for <b>{ $year }</b>
   .consumption = Consumption
@@ -119,6 +116,25 @@ units =
   .water = gal
   .gas = ft³
 
+unit =
+  .kwh = kW·h
+  .kwh_alt = kWh
+  .m3 = m³
+  .l = l
+  .gal = gal
+  .ft3 = ft³
+  .gcal = Gcal
+  .gj = GJ
+  .mwh = MW·h
+  .month = mo.
+  .day = day
+  .person = pers.
+  .m2 = m²
+  .unit = unit
+  .piece = pc.
+  .service = service
+  .therm = therm
+
 language-select-title = 🌐 Select language:
 language-selected = ✅ Language successfully changed!
 
@@ -130,6 +146,7 @@ resource =
   .internet = 🌐 Internet
   .garbage = 🗑️ Garbage
   .other = 📦 Other
+  .rent = 🏠 Rent
 
 meter-type =
   .single = Single-rate
@@ -139,6 +156,8 @@ meter-type =
 create-account =
   .ask-resource = Select resource type:
   .cancelled = ❌ Account creation cancelled.
+  .ask-persons = 👥 Enter number of persons:
+  .ask-area = 🏙️ Enter area in m²:
   .ask-meter-type = Select meter type:
   .ask-unit = Select unit for { $emoji } { $resource }:
   .ask-currency = Select currency:
@@ -205,7 +224,7 @@ delete-account =
   .error-not-found = ❌ Error: account not found in DB.
   .confirm = Are you sure you want to delete account { $account }?
   .cancelled = ❌ Deletion cancelled.
-  .success = ✅ Account and all related data successfully deleted.
+  .success = ✅ Account { $account } and all related data successfully deleted.
 
 delete-address =
   .error-no-id = ❌ Error: could not determine address to delete.
@@ -213,23 +232,24 @@ delete-address =
   .confirm = Are you sure you want to delete address { $address }?
   .confirm-unlink = Are you sure you want to unlink address { $address } from your profile?
   .cancelled = ❌ Deletion cancelled.
-  .success-all = ✅ Address and all related data successfully deleted.
-  .success-unlinked = ✅ Address unlinked from your profile.
-  .error = ❌ Error deleting address.
+  .success-all = ✅ Address { $address } and all related data successfully deleted.
+  .success-unlinked = ✅ Address { $address } unlinked from your profile.
+  .error = ❌ Error deleting address { $address }.
 
 delete-reading =
   .error-no-id = ❌ Error: could not determine reading to delete.
   .error-not-found = ❌ Error: reading not found in DB.
   .confirm = Are you sure you want to delete readings for { $date }?
   .cancelled = ❌ Deletion cancelled.
-  .success = ✅ Readings successfully deleted.
+  .success = ✅ Readings for { $date } successfully deleted.
 
 delete-tariff =
   .error-no-id = ❌ Error: could not determine tariff to delete.
   .error-not-found = ❌ Error: tariff not found in DB.
   .confirm = Are you sure you want to delete tariff { $type }?
   .cancelled = ❌ Deletion cancelled.
-  .success = ✅ Tariff successfully deleted.
+  .success = ✅ Tariff { $type } successfully deleted.
+  .error = ❌ Error deleting tariff { $type }.
 
 delete-fixed-fee =
   .confirm = Delete fixed fee { $amount }?
@@ -243,16 +263,23 @@ calculate-bill =
   .ask-month-year = 📅 Select month for calculation ({ $year }):
   .error-no-accounts = ❌ No accounts found for this address.
   .bill-header = 🧾 Bill for account <b>{ $account }</b> for <b>{ $date }</b>
-  .total = <b>TOTAL TO PAY: { $amount }</b>
+  .total = <b>TOTAL TO PAY: { $amount } { $currency }</b>
   .summary-header = 🧾 Summary bill for <b>{ $date }</b>
   .account-header = <b>Account { $account } ({ $emoji })</b>
-  .account-total =   - <b>Account total: { $amount }</b>
-  .grand-total = <b>💰 GRAND TOTAL: { $amount }</b>
+  .account-total =   - <b>Account total: { $amount } { $currency }</b>
+  .grand-total = <b>💰 GRAND TOTAL: { $amount } { $currency }</b>
   .error-readings-not-found = Readings not found
   .error-prev-readings-not-found = Previous readings not found ({ $date })
+  .error-no-area = ❌ Area not specified for this account.
+  .error-tariff-zone-not-found = ❌ Tariff zone not found.
   .error-tariff-not-found = Active tariff not found
+  .error-no-persons = ❌ Number of persons not specified for this account.
   .error-negative-consumption = Negative consumption for zone "{ $zone }"
   .line-zone =   - Zone "{ $zone }": { $consumption } { $unit } x { $price } = <b>{ $cost }</b>
+  .line-area =   - Area: { $area } { $unit } × { $price } = <b>{ $cost }</b>
+  .line-persons = - Persons: { $persons } { $unit } × { $price } = <b>{ $cost }</b>
+  .line-unit-service = - Service: { $quantity } { $unit } × { $price } = <b>{ $cost }</b>
+  .line-internet = - Internet: { $consumption } { $unit } × { $price } = <b>{ $cost }</b>
   .line-fixed-fee =   - ➕ Fixed fee: <b>{ $amount }</b>
 
 broadcast =
@@ -263,10 +290,7 @@ broadcast =
     Failed: { $failure }
 
 transfer-address =
-  .ask-id = 🆔 Enter the Telegram ID of the new owner:
-  .error-invalid-id = ❌ Invalid ID. Please enter a number.
   .error-user-not-found = ❌ User with this ID not found in the bot database. Ask them to start the bot first.
-  .error-self-transfer = ❌ You cannot transfer the address to yourself.
   .confirm = Are you sure you want to transfer ownership of address <b>{ $address }</b> to user <b>{ $user }</b>?
   .cancelled = ❌ Transfer cancelled.
   .success = ✅ Ownership successfully transferred.
@@ -274,8 +298,9 @@ transfer-address =
 
 kick-user =
   .confirm = Are you sure you want to kick user <b>{ $user }</b> from address <b>{ $address }</b>?
-  .success = ✅ User kicked.
-  .error = ❌ Error kicking user.
+  .success = ✅ User <b>{ $user }</b> kicked from address <b>{ $address }</b>.
+  .error = ❌ Error kicking user <b>{ $user }</b> from address <b>{ $address }</b>.
+  .cancelled = ❌ Kick cancelled.
 
 invite =
   .success = ✅ You have successfully joined the address <b>{ $address }</b>.
@@ -302,8 +327,10 @@ create-reminder =
 
 delete-reminder =
   .confirm = Delete reminder <b>{ $title }</b>?
-  .success = ✅ Reminder deleted.
+  .success = ✅ Reminder <b>{ $title }</b> deleted.
   .cancelled = ❌ Deletion cancelled.
+  .error = ❌ Error deleting reminder <b>{ $title }</b>.
+
 
 set-timezone =
   .ask = Select your timezone from list or send location:

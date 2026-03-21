@@ -141,11 +141,19 @@ export class MenuManager extends BaseManager {
 
   /**
    * Показать меню пользователю
-   * @param ctx - контекст Telegraf
-   * @param id - id меню
-   * @param isBack - флаг, указывающий, что это переход назад (не нужно пушить в историю)
+   * @param ctx контекст Telegraf
+   * @param {string | MenuBase | null}nextMenu id следующего меню, которое нужно открыть, по-умолчанию null
+   * @param {boolean}isBack флаг, указывающий, что это переход назад (не нужно пушить в историю), по-умолчанию false
+   * @param {boolean}skipHistory флаг, указывающий, что меню не нужно добавлять в breadcrumbs, по-умолчанию false
+   * @param {boolean}reply флаг, указывающий, что меню должно быть отправлено новым сообщением, по-умолчанию false
    */
-  async showMenu(ctx: CallbackContext, nextMenu: string | MenuBase | null = null, isBack: boolean = false, skipHistory: boolean = false): Promise<void> {
+  async showMenu(
+    ctx: CallbackContext, 
+    nextMenu: string | MenuBase | null = null, 
+    isBack: boolean = false, 
+    skipHistory: boolean = false,
+    reply: boolean = false
+  ): Promise<void> {
     let menuId: string;
     let menuObj: MenuBase | undefined;
 
@@ -193,7 +201,7 @@ export class MenuManager extends BaseManager {
       this.addNavigationButtons(ctx, keyboard);
 
       const text = ctx.t("menu.title");
-      if (ctx.callbackQuery) {
+      if (ctx.callbackQuery && !reply) {
         await ctx.editMessageText(text, { reply_markup: keyboard, parse_mode: "HTML" });
       } else {
         await ctx.reply(text, { reply_markup: keyboard, parse_mode: "HTML" });
@@ -229,7 +237,7 @@ export class MenuManager extends BaseManager {
     this.addNavigationButtons(ctx, keyboard);
 
     const menuTitle = await ctx.resolveText(menu.title);
-    ctx.callbackQuery
+    ctx.callbackQuery && !reply
       ? await ctx.callbackQuery.message?.editText(menuTitle, { reply_markup: keyboard, parse_mode: "HTML" })
       : await ctx.reply(menuTitle, { reply_markup: keyboard, parse_mode: "HTML" });
     return;
