@@ -29,7 +29,7 @@ export default class CreateReadingScene extends BaseScene {
     ctx.wizard.state.message = ctx.callbackQuery?.message;
     const currentYear = new Date().getFullYear();
     ctx.wizard.state.selectedYear = currentYear;
-    await ctx.wizard.state.message?.editText(ctx.t("create-reading.ask-date", { year: currentYear }), {
+    await ctx.wizard.state.message?.editText(ctx.t("create-reading.ask-date", { year: currentYear.toString() }), {
       reply_markup: this.makeYearMonthKeyboard(currentYear),
       parse_mode: "HTML"
     });
@@ -43,7 +43,7 @@ export default class CreateReadingScene extends BaseScene {
     if (yearData) {
       ctx.wizard.state.selectedYear = parseInt(yearData[1], 10);
       await ctx.wizard.state.message?.editText(
-        ctx.t("create-reading.ask-date", { year: ctx.wizard.state.selectedYear }), {
+        ctx.t("create-reading.ask-date", { year: ctx.wizard.state.selectedYear.toString() }), {
         reply_markup: this.makeYearMonthKeyboard(ctx.wizard.state.selectedYear),
         parse_mode: "HTML"
       }

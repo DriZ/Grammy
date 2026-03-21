@@ -29,7 +29,7 @@ export default class CreateFixedFeeScene extends BaseScene {
     ctx.wizard.state.selectedYear = currentYear;
 
     await ctx.wizard.state.message?.editText(
-      ctx.t("create-fixed-fee.ask-date", { year: currentYear }),
+      ctx.t("create-fixed-fee.ask-date", { year: currentYear.toString() }),
       { reply_markup: this.makeYearMonthKeyboard(currentYear), parse_mode: "HTML" },
     );
     return ctx.wizard.next();
@@ -41,7 +41,7 @@ export default class CreateFixedFeeScene extends BaseScene {
     if (yearData) {
       ctx.wizard.state.selectedYear = parseInt(yearData[1], 10);
       await ctx.callbackQuery?.message?.editText(
-        ctx.t("create-fixed-fee.ask-date", { year: ctx.wizard.state.selectedYear }),
+        ctx.t("create-fixed-fee.ask-date", { year: ctx.wizard.state.selectedYear.toString() }),
         { reply_markup: this.makeYearMonthKeyboard(ctx.wizard.state.selectedYear), parse_mode: "HTML" },
       );
       return;

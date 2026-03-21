@@ -1,11 +1,10 @@
-import { Account, UtilitiesReading } from "@models/index.js";
+import { Account, UtilitiesReading, type IUtilitiesReading } from "@models/index.js";
 import { type CallbackContext, EResource, type MenuButton, type ZoneReading } from "@app-types/index.js";
 import { BaseMenu } from "@structures/index.js";
 import type BotClient from "@core/Client.js";
 
 export class ReadingsMenu extends BaseMenu {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(client: BotClient, private accountId: string, private year: number, private readings: any[]) {
+  constructor(client: BotClient, private accountId: string, private year: number, private readings: IUtilitiesReading[]) {
     super(client, `readings-${accountId}-${year}`);
   }
 
@@ -28,7 +27,7 @@ export class ReadingsMenu extends BaseMenu {
       if (prevYearDecReading && latestReadingInSelectedYear) {
         let totalConsumption = 0;
         for (const currentZone of latestReadingInSelectedYear.zones) {
-          const prevZone = prevYearDecReading.zones.find((z: ZoneReading) => z.name === currentZone.name);
+          const prevZone = prevYearDecReading.zones.find((z) => z.name === currentZone.name);
           if (prevZone) {
             const consumption = currentZone.value - prevZone.value;
             if (consumption >= 0) {
@@ -44,7 +43,7 @@ export class ReadingsMenu extends BaseMenu {
         }
       }
 
-      return `${ctx.t("readings-menu.title", { year: this.year })} (${EResource[account.resource].emoji ?? ""} №${ctx.escapeHTML(account.account_number)})${consumptionText}`;
+      return `${ctx.t("readings-menu.title", { year: this.year.toString() })} (${EResource[account.resource].emoji ?? ""} №${ctx.escapeHTML(account.account_number)})${consumptionText}`;
     };
   }
 
