@@ -51,6 +51,16 @@ export class MenuHandler {
    * Инициализация слушателей событий
    */
   init() {
+    // Обработчик кнопки "Назад"
+    this.client.callbackQuery("menu-back", async (ctx) => {
+      await ctx.answerCallbackQuery();
+      return this.menuManager.goBack(ctx as CallbackContext);
+    });
+
+    this.client.callbackQuery("noop", async (ctx) => {
+      return ctx.answerCallbackQuery();
+    });
+
     // Настраиваем резолвер для динамических меню
     this.menuManager.dynamicMenuResolver = async (ctx, menuId) => {
       // Обрабатываем специальные случаи, которые не вписываются в общий паттерн
@@ -120,12 +130,6 @@ export class MenuHandler {
       } else {
         await ctx.answerCallbackQuery("⚠️ Команда не найдена или отключена.");
       }
-    });
-
-    // Обработчик кнопки "Назад"
-    this.client.callbackQuery("menu-back", async (ctx) => {
-      await ctx.answerCallbackQuery();
-      return this.menuManager.goBack(ctx as CallbackContext);
     });
 
     // Регистрируем глобальный обработчик для навигации по меню
