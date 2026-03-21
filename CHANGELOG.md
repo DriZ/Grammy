@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/DriZ/Grammy/compare/v1.3.3...v1.4.0) (2026-03-21)
+
+
+### Features
+
+* small refactors, stop tracking docs folder, other improvements ([7daefe6](https://github.com/DriZ/Grammy/commit/7daefe67efb0ac46b56245a6accc41c955f356ce))
+
 ### [1.3.3](https://github.com/DriZ/Grammy/compare/v1.3.2...v1.3.3) (2026-03-03)
 
 ### [1.3.2](https://github.com/DriZ/Grammy/compare/v1.3.1...v1.3.2) (2026-03-02)
