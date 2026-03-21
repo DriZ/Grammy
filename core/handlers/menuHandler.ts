@@ -148,7 +148,6 @@ export class MenuHandler {
 
       if (isStatic || isDynamic || isReminders) {
         try {
-          await ctx.answerCallbackQuery();
 
           // Пытаемся найти кнопку в текущем меню, чтобы узнать параметры перехода (например, skipHistory)
           let skipHistory = false;
@@ -173,7 +172,8 @@ export class MenuHandler {
             }
           }
 
-          return await this.menuManager.showMenu(ctx as CallbackContext, menuId, false, skipHistory);
+          await this.menuManager.showMenu(ctx as CallbackContext, menuId, false, skipHistory);
+          return await ctx.answerCallbackQuery();
         } catch (e) {
           console.error(`Ошибка при открытии меню ${menuId}:`, e);
         }

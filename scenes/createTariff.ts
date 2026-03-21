@@ -34,7 +34,7 @@ export default class CreateTariffScene extends BaseScene {
     ctx.wizard.state.selectedYear = currentYear;
 
     await ctx.wizard.state.message?.editText(
-      ctx.t("create-tariff.ask-date", { year: currentYear }), {
+      ctx.t("create-tariff.ask-date", { year: currentYear.toString() }), {
       reply_markup: this.makeYearMonthKeyboard(currentYear),
       parse_mode: "HTML"
     }

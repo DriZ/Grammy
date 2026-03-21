@@ -24,8 +24,8 @@ export default class CalculateBillScene extends BaseScene {
     ctx.wizard.state.selectedYear = currentYear;
 
     const text = accountId
-      ? ctx.t("calculate-bill.ask-month", { year: currentYear })
-      : ctx.t("calculate-bill.ask-month-address", { year: currentYear });
+      ? ctx.t("calculate-bill.ask-month", { year: currentYear.toString() })
+      : ctx.t("calculate-bill.ask-month-address", { year: currentYear.toString() });
 
     await ctx.wizard.state.message?.editText(text, {
       reply_markup: this.makeYearMonthKeyboard(currentYear),
@@ -40,7 +40,7 @@ export default class CalculateBillScene extends BaseScene {
     const yearData = ctx.callbackQuery?.data?.match(/^select-year-(\d{4})$/);
     if (yearData) {
       ctx.wizard.state.selectedYear = parseInt(yearData[1], 10);
-      const title = ctx.t("calculate-bill.ask-month-year", { year: ctx.wizard.state.selectedYear });
+      const title = ctx.t("calculate-bill.ask-month-year", { year: ctx.wizard.state.selectedYear.toString() });
       await ctx.callbackQuery?.message?.editText(title, {
         reply_markup: this.makeYearMonthKeyboard(ctx.wizard.state.selectedYear),
         parse_mode: "HTML"
